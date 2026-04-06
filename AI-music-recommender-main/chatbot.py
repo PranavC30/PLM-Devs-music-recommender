@@ -1,5 +1,6 @@
 import random
 import pandas as pd
+import os
 
 class MusicChatbot:
     """
@@ -31,7 +32,9 @@ class MusicChatbot:
     GREETINGS = ['hi', 'hello', 'hey', 'hii', 'helo', 'namaste', 'sup', 'yo']
     THANKS     = ['thanks', 'thank you', 'shukriya', 'dhanyawad', 'ty', 'thx']
 
-    def __init__(self, data_path='data/songs.csv'):
+    def __init__(self, data_path=None):
+        if data_path is None:
+            data_path = os.path.join(os.path.dirname(__file__), 'data', 'songs.csv')
         self.df = pd.read_csv(data_path)
 
     def _detect(self, text, keyword_map):
