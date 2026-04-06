@@ -188,7 +188,8 @@ if st.session_state.is_admin:
         new_lang  = st.selectbox("Language", ["Hindi", "English"])
         new_url   = st.text_input("YouTube URL (Optional)")
         if st.form_submit_button("Add to Universe") and new_song.strip():
-            with open("data/songs.csv", "a", encoding="utf-8") as f:
+            data_path = os.path.join(os.path.dirname(__file__), 'data', 'songs.csv')
+            with open(data_path, "a", encoding="utf-8") as f:
                 f.write(f"\n{new_song},{new_mood},{new_genre},{new_energy},{new_lang},{new_url}")
             st.success("Injected!")
             st.session_state.recommender = Recommender()
