@@ -133,7 +133,7 @@ if st.session_state.nlp is None:       st.session_state.nlp = NLPEngine()
 if st.session_state.recommender is None: st.session_state.recommender = Recommender()
 if st.session_state.chatbot is None:   st.session_state.chatbot = MusicChatbot()
 
-apply_theme(st.session_state.current_mood)
+apply_theme(st.session_state.get('current_mood', 'Relaxed') or 'Relaxed')
 
 # ═══════════════════════════════════════════════════════
 #  LOGIN PAGE
