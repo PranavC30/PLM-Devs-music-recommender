@@ -515,19 +515,23 @@ with tab_rec:
             </div>
             """, unsafe_allow_html=True)
 
-            # YouTube player — st.video() is more reliable than iframe embed
+            # YouTube direct link — embedding blocked by most songs due to copyright
             song_url = str(song.get('URL', '')).strip()
             if song_url and song_url.lower() != 'nan' and song_url.startswith('http'):
-                try:
-                    st.video(song_url)
-                except Exception:
-                    yt_search = f"https://www.youtube.com/results?search_query={song['Song'].replace(' ', '+')}"
-                    st.markdown(f"<a href='{yt_search}' target='_blank' style='color:#FF0000;'>▶ Search on YouTube</a>",
-                                unsafe_allow_html=True)
+                play_url = song_url
             else:
-                yt_search = f"https://www.youtube.com/results?search_query={song['Song'].replace(' ', '+')}"
-                st.markdown(f"<a href='{yt_search}' target='_blank' style='color:#FF0000;'>▶ Search on YouTube</a>",
-                            unsafe_allow_html=True)
+                play_url = f"https://www.youtube.com/results?search_query={song['Song'].replace(' ', '+')}"
+
+            st.markdown(f"""
+            <div style='text-align:center;margin:8px 0 16px 0;'>
+                <a href="{play_url}" target="_blank"
+                   style="display:inline-block;padding:12px 32px;background:#FF0000;
+                   color:white;text-decoration:none;border-radius:25px;font-weight:bold;
+                   font-size:1rem;box-shadow:0 4px 15px rgba(255,0,0,0.3);">
+                   ▶ Play on YouTube
+                </a>
+            </div>
+            """, unsafe_allow_html=True)
 
             fav_col, queue_col, _ = st.columns([1, 1, 3])
             with fav_col:
