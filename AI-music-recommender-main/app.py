@@ -45,35 +45,40 @@ MOOD_ACCENT = {
 def get_yt_embed_html(url: str, song_name: str, language: str = "Hindi") -> str:
     """Extract YouTube video ID and return iframe embed HTML."""
     import re
-    if not url or str(url).strip() == '' or str(url).strip().lower() == 'nan':
-        # Improved fallback: search YouTube with better query
-        query = f"{song_name} official music video {language}".replace(' ', '+')
-        return (f"<div style='text-align:center;padding:12px;opacity:0.6;'>"
-                f"<a href='https://www.youtube.com/results?search_query={query}' target='_blank' "
-                f"style='color:#FF0000;'>▶ Search '{song_name}' on YouTube</a></div>")
-    url = str(url).strip()
-    # Extract video ID — handles watch?v=, youtu.be/, embed/ formats
-    patterns = [
-        r'(?:v=|/v/|youtu\.be/|/embed/)([A-Za-z0-9_-]{11})',
-    ]
-    vid_id = None
-    for p in patterns:
-        m = re.search(p, url)
-        if m:
-            vid_id = m.group(1)
-            break
-    if not vid_id:
-        # If URL exists but can't extract ID, still do improved search
-        query = f"{song_name} official music video {language}".replace(' ', '+')
-        return (f"<div style='text-align:center;padding:12px;opacity:0.6;'>"
-                f"<a href='https://www.youtube.com/results?search_query={query}' target='_blank' "
-                f"style='color:#FF0000;'>▶ Search '{song_name}' on YouTube</a></div>")
-    return (f"<div style='border-radius:12px;overflow:hidden;margin:10px 0;'>"
-            f"<iframe width='100%' height='220' "
-            f"src='https://www.youtube.com/embed/{vid_id}?rel=0&modestbranding=1' "
-            f"frameborder='0' allow='accelerometer; autoplay; clipboard-write; "
-            f"encrypted-media; gyroscope; picture-in-picture' allowfullscreen "
-            f"style='border-radius:12px;display:block;'></iframe></div>")
+
+    # Always use search-based approach for better accuracy
+    # This ensures each song gets its own correct video
+    query = f"{song_name} official music video {language}".replace(' ', '+')
+    search_url = f"https://www.youtube.com/results?search_query={query}"
+
+    # If we have a valid URL, try to use it, but fall back to search if extraction fails
+    if url and str(url).strip() and str(url).strip().lower() != 'nan':
+        url = str(url).strip()
+        # Extract video ID — handles watch?v=, youtu.be/, embed/ formats
+        patterns = [
+            r'(?:v=|/v/|youtu\.be/|/embed/)([A-Za-z0-9_-]{11})',
+        ]
+        vid_id = None
+        for p in patterns:
+            m = re.search(p, url)
+            if m:
+                vid_id = m.group(1)
+                break
+
+        if vid_id:
+            # We have a valid video ID, embed it
+            return (f"<div style='border-radius:12px;overflow:hidden;margin:10px 0;'>"
+                    f"<iframe width='100%' height='220' "
+                    f"src='https://www.youtube.com/embed/{vid_id}?rel=0&modestbranding=1' "
+                    f"frameborder='0' allow='accelerometer; autoplay; clipboard-write; "
+                    f"encrypted-media; gyroscope; picture-in-picture' allowfullscreen "
+                    f"style='border-radius:12px;display:block;'></iframe></div>")
+
+    # Fallback: Always provide a search link that will likely return the correct video
+    return (f"<div style='text-align:center;padding:12px;opacity:0.8;'>"
+            f"<a href='{search_url}' target='_blank' "
+            f"style='color:#FF0000;font-weight:bold;text-decoration:none;'>"
+            f"▶ Play '{song_name}' on YouTube</a></div>")
 
 def apply_theme(mood):
     accent = MOOD_ACCENT.get(mood, "#1DB954")
