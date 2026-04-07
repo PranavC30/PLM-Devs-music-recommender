@@ -1,4 +1,5 @@
 import datetime
+import json
 import pandas as pd
 from auth import load_history
 from gamification import load_stats
@@ -46,11 +47,19 @@ def generate_weekly_report(username: str) -> dict:
     # Daily activity
     daily = week_df.groupby('date').size().reset_index(name='sessions')
 
-    # All songs listened
+    # All songs listened — handle both list and JSON string formats
     all_songs = []
-    for songs_list in week_df['songs']:
-        if isinstance(songs_list, list):
-            all_songs.extend(songs_list)
+    for songs_val in week_df['songs']:
+        if isinstance(songs_val, list):
+            all_songs.extend(songs_val)
+        elif isinstance(songs_val, str):
+            try:
+                parsed = json.loads(songs_val)
+                if isinstance(parsed, list):
+                    all_songs.extend(parsed)
+            except Exception:
+                if songs_val.strip():
+                    all_songs.append(songs_val.strip())
     from collections import Counter
     top_songs = Counter(all_songs).most_common(5)
 

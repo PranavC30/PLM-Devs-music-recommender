@@ -224,6 +224,8 @@ Install all: `pip install -r requirements.txt`
 
 Made with ❤️ by **PLM Devs**
 
-*"Music is the AI's language, and your mood is the input."*
+🚀 Designed & Developed by **Pranav Chakravorty**
+
+*"Turning mood into music, one algorithm at a time."*
 
 </div>

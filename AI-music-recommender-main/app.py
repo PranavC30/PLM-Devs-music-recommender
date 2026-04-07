@@ -38,7 +38,37 @@ MOOD_ACCENT = {
     "Happy": "#FFD700", "Sad": "#6495ED", "Focus": "#FF8C00", "Relaxed": "#1DB954"
 }
 
-def apply_theme(mood="Relaxed"):
+def get_yt_embed_html(url: str, song_name: str) -> str:
+    """Extract YouTube video ID and return iframe embed HTML."""
+    import re
+    if not url or str(url).strip() == '' or str(url).strip().lower() == 'nan':
+        # Fallback: search YouTube
+        query = song_name.replace(' ', '+')
+        return (f"<div style='text-align:center;padding:12px;opacity:0.6;'>"
+                f"<a href='https://www.youtube.com/results?search_query={query}' target='_blank' "
+                f"style='color:#FF0000;'>▶ Search on YouTube</a></div>")
+    url = str(url).strip()
+    # Extract video ID — handles watch?v=, youtu.be/, embed/ formats
+    patterns = [
+        r'(?:v=|/v/|youtu\.be/|/embed/)([A-Za-z0-9_-]{11})',
+    ]
+    vid_id = None
+    for p in patterns:
+        m = re.search(p, url)
+        if m:
+            vid_id = m.group(1)
+            break
+    if not vid_id:
+        query = song_name.replace(' ', '+')
+        return (f"<div style='text-align:center;padding:12px;opacity:0.6;'>"
+                f"<a href='https://www.youtube.com/results?search_query={query}' target='_blank' "
+                f"style='color:#FF0000;'>▶ Search on YouTube</a></div>")
+    return (f"<div style='border-radius:12px;overflow:hidden;margin:10px 0;'>"
+            f"<iframe width='100%' height='220' "
+            f"src='https://www.youtube.com/embed/{vid_id}?rel=0&modestbranding=1' "
+            f"frameborder='0' allow='accelerometer; autoplay; clipboard-write; "
+            f"encrypted-media; gyroscope; picture-in-picture' allowfullscreen "
+            f"style='border-radius:12px;display:block;'></iframe></div>")
     accent = MOOD_ACCENT.get(mood, "#1DB954")
     bg = MOOD_GRADIENTS.get(mood, MOOD_GRADIENTS["Relaxed"])
     st.markdown(f"""
@@ -109,16 +139,61 @@ apply_theme(st.session_state.current_mood)
 #  LOGIN PAGE
 # ═══════════════════════════════════════════════════════
 if not st.session_state.logged_in:
-    st.markdown("<h1 class='title-text'>🎵 Welcome to PLM Devs Music AI</h1>", unsafe_allow_html=True)
-    st.write("---")
+    # Full-page login styling
+    st.markdown("""
+    <style>
+    .login-hero {
+        text-align: center;
+        padding: 40px 20px 10px 20px;
+    }
+    .login-tagline {
+        text-align: center;
+        font-size: 1.15rem;
+        opacity: 0.7;
+        margin-bottom: 8px;
+    }
+    .login-features {
+        display: flex;
+        justify-content: center;
+        gap: 24px;
+        flex-wrap: wrap;
+        margin: 18px 0 30px 0;
+    }
+    .login-feat-chip {
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 20px;
+        padding: 6px 16px;
+        font-size: 0.9rem;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<div class='login-hero'>", unsafe_allow_html=True)
+    st.markdown("<h1 class='title-text'>🎵 PLM Devs Music AI</h1>", unsafe_allow_html=True)
+    st.markdown("<p class='login-tagline'>Your personal AI that learns your music taste and gets smarter every day.</p>",
+                unsafe_allow_html=True)
+    st.markdown("""
+    <div class='login-features'>
+        <span class='login-feat-chip'>🧠 Q-Learning AI</span>
+        <span class='login-feat-chip'>🎭 Mood Detection</span>
+        <span class='login-feat-chip'>🌍 5 Languages</span>
+        <span class='login-feat-chip'>🏆 Gamification</span>
+        <span class='login-feat-chip'>🌐 Community</span>
+        <span class='login-feat-chip'>📊 Weekly Reports</span>
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
     col_l, col_m, col_r = st.columns([1, 2, 1])
     with col_m:
         login_tab, signup_tab = st.tabs(["🔑 Login", "📝 Sign Up"])
         with login_tab:
-            st.subheader("Login to your account")
-            l_user = st.text_input("Username", key="l_user")
-            l_pass = st.text_input("Password", type="password", key="l_pass")
-            if st.button("Login", use_container_width=True, type="primary"):
+            st.markdown("<br>", unsafe_allow_html=True)
+            l_user = st.text_input("Username", key="l_user", placeholder="Enter your username")
+            l_pass = st.text_input("Password", type="password", key="l_pass", placeholder="Enter your password")
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("Login →", use_container_width=True, type="primary"):
                 if l_user.strip() == "admin_plm" and l_pass == "admin123":
                     st.session_state.is_admin = True
                     st.session_state.logged_in = True
@@ -134,12 +209,16 @@ if not st.session_state.logged_in:
                         st.rerun()
                     else:
                         st.error(msg)
+            st.markdown("<p style='text-align:center;opacity:0.5;font-size:0.8rem;margin-top:12px;'>"
+                        "New here? Switch to Sign Up tab 👆</p>", unsafe_allow_html=True)
+
         with signup_tab:
-            st.subheader("Create a new account")
-            s_user = st.text_input("Choose Username", key="s_user")
-            s_pass = st.text_input("Choose Password", type="password", key="s_pass")
-            s_pass2 = st.text_input("Confirm Password", type="password", key="s_pass2")
-            if st.button("Create Account", use_container_width=True):
+            st.markdown("<br>", unsafe_allow_html=True)
+            s_user  = st.text_input("Choose Username", key="s_user", placeholder="e.g. pranav123")
+            s_pass  = st.text_input("Choose Password", type="password", key="s_pass", placeholder="Min 4 characters")
+            s_pass2 = st.text_input("Confirm Password", type="password", key="s_pass2", placeholder="Repeat password")
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("Create My AI Brain 🧠", use_container_width=True, type="primary"):
                 if not s_user.strip():
                     st.error("Username cannot be empty.")
                 elif s_pass != s_pass2:
@@ -148,7 +227,21 @@ if not st.session_state.logged_in:
                     st.error("Password must be at least 4 characters.")
                 else:
                     ok, msg = register_user(s_user.strip(), s_pass)
-                    st.success(f"{msg} Please login.") if ok else st.error(msg)
+                    st.success(f"✅ {msg} Now login!") if ok else st.error(msg)
+            st.markdown("<p style='text-align:center;opacity:0.5;font-size:0.8rem;margin-top:12px;'>"
+                        "Each account gets its own personalized AI 🎵</p>", unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style='text-align:center;margin-top:40px;'>
+        <p style='opacity:0.4;font-size:0.75rem;margin:0;'>Built with ❤️ by PLM Devs</p>
+        <p style='opacity:0.6;font-size:0.85rem;margin:4px 0 0 0;'>
+            🚀 Designed &amp; Developed by <b>Pranav Chakravorty</b>
+        </p>
+        <p style='opacity:0.35;font-size:0.72rem;margin:2px 0 0 0;font-style:italic;'>
+            "Turning mood into music, one algorithm at a time."
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     st.stop()
 
 # ═══════════════════════════════════════════════════════
@@ -185,14 +278,15 @@ if st.session_state.is_admin:
         new_mood  = st.selectbox("Mood", st.session_state.env.moods)
         new_genre = st.selectbox("Genre", st.session_state.env.get_actions())
         new_energy = st.selectbox("Energy", ["Low", "Medium", "High"])
-        new_lang  = st.selectbox("Language", ["Hindi", "English"])
+        new_lang  = st.selectbox("Language", ["Hindi", "English", "Punjabi", "Tamil", "Telugu"])
         new_url   = st.text_input("YouTube URL (Optional)")
         if st.form_submit_button("Add to Universe") and new_song.strip():
-            data_path = os.path.join(os.path.dirname(__file__), 'data', 'songs.csv')
-            with open(data_path, "a", encoding="utf-8") as f:
+            with open("data/songs.csv", "a", encoding="utf-8") as f:
                 f.write(f"\n{new_song},{new_mood},{new_genre},{new_energy},{new_lang},{new_url}")
             st.success("Injected!")
+            # Reload both recommender and chatbot so new song is available immediately
             st.session_state.recommender = Recommender()
+            st.session_state.chatbot = MusicChatbot()
 
     st.write("---")
     st.header("3. All Users History")
@@ -224,6 +318,9 @@ with st.sidebar:
     else:
         for item in st.session_state.playlist_queue[::-1][:8]:
             st.markdown(f"- 🎵 {item}")
+        if st.button("🗑️ Clear Queue", use_container_width=True, key="clear_queue"):
+            st.session_state.playlist_queue = []
+            st.rerun()
 
     st.divider()
     favs = load_favourites(st.session_state.username) if st.session_state.username else []
@@ -255,10 +352,10 @@ st.markdown("<h1 class='title-text'>🎵 Mood-Based AI Music Recommender</h1>", 
 st.markdown("<p style='text-align:center;font-size:1.1rem;opacity:0.7;'>By PLM Devs 🚀</p>", unsafe_allow_html=True)
 
 (tab_rec, tab_match, tab_social, tab_analytics,
- tab_history, tab_journal, tab_profile, tab_chat, tab_report) = st.tabs([
+ tab_history, tab_journal, tab_profile, tab_chat, tab_report, tab_search) = st.tabs([
     "🎧 Recommender", "🤝 Taste Match", "🌐 Community",
     "📈 Analytics", "📜 History", "📓 Mood Journal", "👤 Profile",
-    "🤖 AI Chatbot", "📊 Weekly Report"
+    "🤖 AI Chatbot", "📊 Weekly Report", "🔍 Search Songs"
 ])
 
 # ═══════════════════════════════════════════════════════
@@ -301,15 +398,27 @@ with tab_rec:
                     detected_mood = "Focus"
 
     with ui_col2:
-        time_of_day = st.selectbox("Time of Day", st.session_state.env.times_of_day)
-        language = st.selectbox("Language", ["Hindi", "English", "Punjabi", "Tamil", "Telugu"])
-
-        # Auto time-of-day suggestion
+        # Auto time detection
         hour = datetime.datetime.now().hour
         auto_time = ("Morning" if 5 <= hour < 12 else
                      "Afternoon" if 12 <= hour < 17 else
                      "Evening" if 17 <= hour < 21 else "Night")
-        st.caption(f"💡 Current time suggests: **{auto_time}**")
+
+        if 'selected_time' not in st.session_state:
+            st.session_state.selected_time = auto_time
+
+        time_idx = st.session_state.env.times_of_day.index(st.session_state.selected_time) \
+                   if st.session_state.selected_time in st.session_state.env.times_of_day else 0
+
+        time_of_day = st.selectbox("Time of Day", st.session_state.env.times_of_day, index=time_idx)
+        st.session_state.selected_time = time_of_day
+
+        language = st.selectbox("Language", ["Hindi", "English", "Punjabi", "Tamil", "Telugu"])
+
+        # One-click auto apply button
+        if st.button(f"⚡ Use Current Time ({auto_time})", use_container_width=True):
+            st.session_state.selected_time = auto_time
+            st.rerun()
 
     # Update theme live
     if detected_mood != st.session_state.current_mood:
@@ -381,6 +490,7 @@ with tab_rec:
             yt_url = f"https://www.youtube.com/results?search_query={song['Song'].replace(' ', '+')}"
             is_fav = song['Song'] in favs_list
             fav_icon = "❤️" if is_fav else "🤍"
+            song_url = song.get('URL', '')
 
             st.markdown(f"""
             <div class="song-box">
@@ -391,11 +501,14 @@ with tab_rec:
                    color:white;text-decoration:none;border-radius:20px;font-weight:bold;">🎧 Spotify</a>
                 <a href="{yt_url}" target="_blank"
                    style="display:inline-block;margin:8px 4px;padding:8px 16px;background:#FF0000;
-                   color:white;text-decoration:none;border-radius:20px;font-weight:bold;">▶ YouTube</a>
+                   color:white;text-decoration:none;border-radius:20px;font-weight:bold;">▶ Open YouTube</a>
             </div>
             """, unsafe_allow_html=True)
 
-            fav_col, _ = st.columns([1, 4])
+            # YouTube embedded player — shown for all songs
+            st.markdown(get_yt_embed_html(song_url, song['Song']), unsafe_allow_html=True)
+
+            fav_col, queue_col, _ = st.columns([1, 1, 3])
             with fav_col:
                 if st.button(f"{fav_icon} Favourite", key=f"fav_{i}_{song['Song']}"):
                     action_done = toggle_favourite(
@@ -403,9 +516,15 @@ with tab_rec:
                         song['Mood'], song['Genre'])
                     st.toast(f"{'Added to' if action_done == 'added' else 'Removed from'} favourites!")
                     st.rerun()
+            with queue_col:
+                in_queue = song['Song'] in st.session_state.playlist_queue
+                q_icon = "✅ In Queue" if in_queue else "➕ Add to Queue"
+                if st.button(q_icon, key=f"queue_{i}_{song['Song']}", disabled=in_queue):
+                    st.session_state.playlist_queue.append(song['Song'])
+                    st.toast(f"➕ {song['Song']} added to queue!")
+                    st.rerun()
 
-            if 'URL' in song and song['URL'] and i == 0:
-                st.video(song['URL'])
+            st.write("")
 
         with st.expander("🤖 Why did the AI choose this? (xAI)"):
             c_action = st.session_state.current_action
@@ -929,3 +1048,85 @@ with tab_report:
             file_name=f"{st.session_state.username}_weekly_report.txt",
             mime="text/plain"
         )
+
+# ═══════════════════════════════════════════════════════
+#  TAB: SONG SEARCH
+# ═══════════════════════════════════════════════════════
+with tab_search:
+    st.header("🔍 Search Songs")
+    st.write("Directly search the entire database by name, mood, genre, or language.")
+
+    # Load fresh data
+    try:
+        df_all = pd.read_csv("data/songs.csv")
+    except Exception:
+        df_all = pd.DataFrame()
+
+    # ── Filters row ──
+    f1, f2, f3, f4 = st.columns([3, 1, 1, 1])
+    with f1:
+        search_query = st.text_input("🔎 Search by song name",
+                                     placeholder="e.g. Kesariya, Espresso, Naatu...",
+                                     key="search_q")
+    with f2:
+        filter_mood = st.selectbox("Mood", ["All"] + st.session_state.env.moods, key="sf_mood")
+    with f3:
+        filter_genre = st.selectbox("Genre", ["All"] + st.session_state.env.get_actions(), key="sf_genre")
+    with f4:
+        filter_lang = st.selectbox("Language", ["All", "Hindi", "English", "Punjabi", "Tamil", "Telugu"], key="sf_lang")
+
+    # ── Apply filters ──
+    results = df_all.copy()
+    if search_query.strip():
+        results = results[results['Song'].str.contains(search_query.strip(), case=False, na=False)]
+    if filter_mood != "All":
+        results = results[results['Mood'] == filter_mood]
+    if filter_genre != "All":
+        results = results[results['Genre'] == filter_genre]
+    if filter_lang != "All":
+        results = results[results['Language'].str.lower() == filter_lang.lower()]
+
+    st.caption(f"Showing {len(results)} of {len(df_all)} songs")
+    st.divider()
+
+    if results.empty:
+        st.info("No songs found. Try different filters.")
+    else:
+        favs_list_s = [f["song"] for f in load_favourites(st.session_state.username)]
+        for idx, row in results.iterrows():
+            sp  = f"https://open.spotify.com/search/{str(row['Song']).replace(' ', '%20')}"
+            yt  = f"https://www.youtube.com/results?search_query={str(row['Song']).replace(' ', '+')}"
+            is_fav = row['Song'] in favs_list_s
+            fav_icon = "❤️" if is_fav else "🤍"
+
+            mood_color = {"Happy": "#FFD700", "Sad": "#6495ED",
+                          "Focus": "#FF8C00", "Relaxed": "#1DB954"}.get(row.get('Mood', ''), "#1DB954")
+
+            c_song, c_actions = st.columns([4, 1])
+            with c_song:
+                st.markdown(f"""
+                <div class="history-card" style="border-left:4px solid {mood_color};">
+                    <b style="font-size:1.05rem;">🎵 {row['Song']}</b><br>
+                    <span style="opacity:0.7;font-size:0.85rem;">
+                        🎭 {row.get('Mood','')} &nbsp;·&nbsp;
+                        🎸 {row.get('Genre','')} &nbsp;·&nbsp;
+                        🌐 {row.get('Language','')} &nbsp;·&nbsp;
+                        ⚡ {row.get('Energy','')}
+                    </span><br>
+                    <a href="{sp}" target="_blank"
+                       style="color:#1DB954;margin-right:14px;font-size:0.85rem;">🎧 Spotify</a>
+                    <a href="{yt}" target="_blank"
+                       style="color:#FF4444;font-size:0.85rem;">▶ YouTube</a>
+                </div>""", unsafe_allow_html=True)
+            with c_actions:
+                if st.button(fav_icon, key=f"sfav_{idx}_{row['Song']}",
+                             help="Add/Remove from Favourites"):
+                    toggle_favourite(st.session_state.username,
+                                     row['Song'], row.get('Mood',''), row.get('Genre',''))
+                    st.rerun()
+                in_queue_s = row['Song'] in st.session_state.playlist_queue
+                if st.button("✅" if in_queue_s else "➕", key=f"sq_{idx}_{row['Song']}",
+                             help="Add to Queue", disabled=in_queue_s):
+                    st.session_state.playlist_queue.append(row['Song'])
+                    st.toast(f"➕ {row['Song']} added to queue!")
+                    st.rerun()

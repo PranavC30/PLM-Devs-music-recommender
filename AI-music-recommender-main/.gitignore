@@ -1,3 +1,12 @@
 __pycache__/
 temp_audio.wav
 .env
+
+# Runtime user data — auto-generated, don't commit
+q_table_*.json
+history_*.json
+stats_*.json
+favourites_*.json
+journal_*.json
+users.json
+shared_playlists.json

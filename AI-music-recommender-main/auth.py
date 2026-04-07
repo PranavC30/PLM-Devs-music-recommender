@@ -64,7 +64,13 @@ def delete_user(username):
     if username in users:
         del users[username]
         save_users(users)
-    for f in [get_history_file(username), f"q_table_{username}.json"]:
+    for f in [
+        get_history_file(username),
+        f"q_table_{username}.json",
+        f"stats_{username}.json",
+        f"favourites_{username}.json",
+        f"journal_{username}.json",
+    ]:
         if os.path.exists(f):
             os.remove(f)
 
