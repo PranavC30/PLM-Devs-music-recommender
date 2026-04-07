@@ -43,15 +43,37 @@ MOOD_ACCENT = {
 }
 
 def get_yt_embed_html(url: str, song_name: str, language: str = "Hindi") -> str:
-    """Extract YouTube video ID and return nocookie iframe embed."""
+    """
+    For English songs: nocookie embed (mostly works).
+    For Hindi/Punjabi/Tamil/Telugu: direct YouTube button (embedding blocked by labels).
+    """
     import re
-    query = f"{song_name} official music video {language}".replace(' ', '+')
-    search_url = f"https://www.youtube.com/results?search_query={query}"
+    query = f"{song_name} official audio {language}".replace(' ', '+')
+    search_url  = f"https://www.youtube.com/results?search_query={query}"
+    direct_url  = str(url).strip() if url and str(url).strip().lower() != 'nan' else search_url
+
+    # Extract video ID
     vid_id = None
     if url and str(url).strip() and str(url).strip().lower() != 'nan':
         m = re.search(r'(?:v=|youtu\.be/|/embed/)([A-Za-z0-9_-]{11})', str(url))
         if m:
             vid_id = m.group(1)
+
+    # Hindi/Punjabi/Tamil/Telugu — labels block embedding, show button instead
+    if language in ('Hindi', 'Punjabi', 'Tamil', 'Telugu'):
+        return (
+            f"<div style='text-align:center;margin:8px 0 18px 0;'>"
+            f"<a href='{direct_url}' target='_blank' "
+            f"style='display:inline-block;padding:12px 32px;background:#FF0000;"
+            f"color:white;text-decoration:none;border-radius:25px;font-weight:bold;"
+            f"font-size:1rem;box-shadow:0 4px 15px rgba(255,0,0,0.4);'>"
+            f"▶ Play on YouTube</a>"
+            f"<p style='opacity:0.45;font-size:0.72rem;margin:6px 0 0 0;'>"
+            f"(Opens YouTube — in-app embed blocked by music labels)</p>"
+            f"</div>"
+        )
+
+    # English / other — try nocookie embed
     if vid_id:
         return (
             f"<div style='border-radius:14px;overflow:hidden;margin:10px 0 16px 0;"
@@ -62,10 +84,14 @@ def get_yt_embed_html(url: str, song_name: str, language: str = "Hindi") -> str:
             f"allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share' "
             f"allowfullscreen style='display:block;'></iframe></div>"
         )
-    return (f"<div style='text-align:center;margin:8px 0 16px 0;'>"
-            f"<a href='{search_url}' target='_blank' "
-            f"style='display:inline-block;padding:10px 28px;background:#FF0000;color:white;"
-            f"text-decoration:none;border-radius:25px;font-weight:bold;'>▶ Play on YouTube</a></div>")
+
+    return (
+        f"<div style='text-align:center;margin:8px 0 18px 0;'>"
+        f"<a href='{search_url}' target='_blank' "
+        f"style='display:inline-block;padding:12px 32px;background:#FF0000;"
+        f"color:white;text-decoration:none;border-radius:25px;font-weight:bold;'>▶ Play on YouTube</a>"
+        f"</div>"
+    )
 
 def apply_theme(mood):
     accent = MOOD_ACCENT.get(mood, "#1DB954")
