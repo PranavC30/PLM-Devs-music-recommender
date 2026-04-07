@@ -46,15 +46,12 @@ def get_yt_embed_html(url: str, song_name: str, language: str = "Hindi") -> str:
     """Extract YouTube video ID and return iframe embed HTML."""
     import re
 
-    # Always use search-based approach for better accuracy
-    # This ensures each song gets its own correct video
+    placeholder_pattern = re.compile(r"(?:[A-Z0-9]T2cPWVBI)")
     query = f"{song_name} official music video {language}".replace(' ', '+')
     search_url = f"https://www.youtube.com/results?search_query={query}"
 
-    # If we have a valid URL, try to use it, but fall back to search if extraction fails
     if url and str(url).strip() and str(url).strip().lower() != 'nan':
         url = str(url).strip()
-        # Extract video ID — handles watch?v=, youtu.be/, embed/ formats
         patterns = [
             r'(?:v=|/v/|youtu\.be/|/embed/)([A-Za-z0-9_-]{11})',
         ]
@@ -65,8 +62,7 @@ def get_yt_embed_html(url: str, song_name: str, language: str = "Hindi") -> str:
                 vid_id = m.group(1)
                 break
 
-        if vid_id:
-            # We have a valid video ID, embed it
+        if vid_id and not placeholder_pattern.search(vid_id):
             return (f"<div style='border-radius:12px;overflow:hidden;margin:10px 0;'>"
                     f"<iframe width='100%' height='220' "
                     f"src='https://www.youtube.com/embed/{vid_id}?rel=0&modestbranding=1' "
@@ -74,7 +70,6 @@ def get_yt_embed_html(url: str, song_name: str, language: str = "Hindi") -> str:
                     f"encrypted-media; gyroscope; picture-in-picture' allowfullscreen "
                     f"style='border-radius:12px;display:block;'></iframe></div>")
 
-    # Fallback: Always provide a search link that will likely return the correct video
     return (f"<div style='text-align:center;padding:12px;opacity:0.8;'>"
             f"<a href='{search_url}' target='_blank' "
             f"style='color:#FF0000;font-weight:bold;text-decoration:none;'>"
@@ -520,8 +515,19 @@ with tab_rec:
             </div>
             """, unsafe_allow_html=True)
 
-            # YouTube embedded player — shown for all songs
-            st.markdown(get_yt_embed_html(song_url, song['Song'], song.get('Language', 'Hindi')), unsafe_allow_html=True)
+            # YouTube player — st.video() is more reliable than iframe embed
+            song_url = str(song.get('URL', '')).strip()
+            if song_url and song_url.lower() != 'nan' and song_url.startswith('http'):
+                try:
+                    st.video(song_url)
+                except Exception:
+                    yt_search = f"https://www.youtube.com/results?search_query={song['Song'].replace(' ', '+')}"
+                    st.markdown(f"<a href='{yt_search}' target='_blank' style='color:#FF0000;'>▶ Search on YouTube</a>",
+                                unsafe_allow_html=True)
+            else:
+                yt_search = f"https://www.youtube.com/results?search_query={song['Song'].replace(' ', '+')}"
+                st.markdown(f"<a href='{yt_search}' target='_blank' style='color:#FF0000;'>▶ Search on YouTube</a>",
+                            unsafe_allow_html=True)
 
             fav_col, queue_col, _ = st.columns([1, 1, 3])
             with fav_col:
