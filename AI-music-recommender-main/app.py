@@ -42,15 +42,15 @@ MOOD_ACCENT = {
     "Happy": "#FFD700", "Sad": "#6495ED", "Focus": "#FF8C00", "Relaxed": "#1DB954"
 }
 
-def get_yt_embed_html(url: str, song_name: str) -> str:
+def get_yt_embed_html(url: str, song_name: str, language: str = "Hindi") -> str:
     """Extract YouTube video ID and return iframe embed HTML."""
     import re
     if not url or str(url).strip() == '' or str(url).strip().lower() == 'nan':
-        # Fallback: search YouTube
-        query = song_name.replace(' ', '+')
+        # Improved fallback: search YouTube with better query
+        query = f"{song_name} official music video {language}".replace(' ', '+')
         return (f"<div style='text-align:center;padding:12px;opacity:0.6;'>"
                 f"<a href='https://www.youtube.com/results?search_query={query}' target='_blank' "
-                f"style='color:#FF0000;'>▶ Search on YouTube</a></div>")
+                f"style='color:#FF0000;'>▶ Search '{song_name}' on YouTube</a></div>")
     url = str(url).strip()
     # Extract video ID — handles watch?v=, youtu.be/, embed/ formats
     patterns = [
@@ -63,10 +63,11 @@ def get_yt_embed_html(url: str, song_name: str) -> str:
             vid_id = m.group(1)
             break
     if not vid_id:
-        query = song_name.replace(' ', '+')
+        # If URL exists but can't extract ID, still do improved search
+        query = f"{song_name} official music video {language}".replace(' ', '+')
         return (f"<div style='text-align:center;padding:12px;opacity:0.6;'>"
                 f"<a href='https://www.youtube.com/results?search_query={query}' target='_blank' "
-                f"style='color:#FF0000;'>▶ Search on YouTube</a></div>")
+                f"style='color:#FF0000;'>▶ Search '{song_name}' on YouTube</a></div>")
     return (f"<div style='border-radius:12px;overflow:hidden;margin:10px 0;'>"
             f"<iframe width='100%' height='220' "
             f"src='https://www.youtube.com/embed/{vid_id}?rel=0&modestbranding=1' "
@@ -515,7 +516,7 @@ with tab_rec:
             """, unsafe_allow_html=True)
 
             # YouTube embedded player — shown for all songs
-            st.markdown(get_yt_embed_html(song_url, song['Song']), unsafe_allow_html=True)
+            st.markdown(get_yt_embed_html(song_url, song['Song'], song.get('Language', 'Hindi')), unsafe_allow_html=True)
 
             fav_col, queue_col, _ = st.columns([1, 1, 3])
             with fav_col:
