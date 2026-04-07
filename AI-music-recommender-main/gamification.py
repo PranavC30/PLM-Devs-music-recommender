@@ -82,6 +82,15 @@ def update_stats(username, mood, genre, feedback):
             newly_earned.append(badge)
 
     save_stats(username, stats)
+    
+    # Update leaderboard
+    try:
+        from social import update_leaderboard
+        level = get_level(stats["xp"])
+        update_leaderboard(username, stats["xp"], level)
+    except:
+        pass  # If social module not available, skip
+    
     return stats, newly_earned
 
 def get_level(xp):
