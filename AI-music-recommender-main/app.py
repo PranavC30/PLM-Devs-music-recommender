@@ -43,37 +43,29 @@ MOOD_ACCENT = {
 }
 
 def get_yt_embed_html(url: str, song_name: str, language: str = "Hindi") -> str:
-    """Extract YouTube video ID and return iframe embed HTML."""
+    """Extract YouTube video ID and return nocookie iframe embed."""
     import re
-
-    placeholder_pattern = re.compile(r"(?:[A-Z0-9]T2cPWVBI)")
     query = f"{song_name} official music video {language}".replace(' ', '+')
     search_url = f"https://www.youtube.com/results?search_query={query}"
-
+    vid_id = None
     if url and str(url).strip() and str(url).strip().lower() != 'nan':
-        url = str(url).strip()
-        patterns = [
-            r'(?:v=|/v/|youtu\.be/|/embed/)([A-Za-z0-9_-]{11})',
-        ]
-        vid_id = None
-        for p in patterns:
-            m = re.search(p, url)
-            if m:
-                vid_id = m.group(1)
-                break
-
-        if vid_id and not placeholder_pattern.search(vid_id):
-            return (f"<div style='border-radius:12px;overflow:hidden;margin:10px 0;'>"
-                    f"<iframe width='100%' height='220' "
-                    f"src='https://www.youtube.com/embed/{vid_id}?rel=0&modestbranding=1' "
-                    f"frameborder='0' allow='accelerometer; autoplay; clipboard-write; "
-                    f"encrypted-media; gyroscope; picture-in-picture' allowfullscreen "
-                    f"style='border-radius:12px;display:block;'></iframe></div>")
-
-    return (f"<div style='text-align:center;padding:12px;opacity:0.8;'>"
+        m = re.search(r'(?:v=|youtu\.be/|/embed/)([A-Za-z0-9_-]{11})', str(url))
+        if m:
+            vid_id = m.group(1)
+    if vid_id:
+        return (
+            f"<div style='border-radius:14px;overflow:hidden;margin:10px 0 16px 0;"
+            f"box-shadow:0 4px 20px rgba(0,0,0,0.5);'>"
+            f"<iframe width='100%' height='240' "
+            f"src='https://www.youtube-nocookie.com/embed/{vid_id}?rel=0&modestbranding=1' "
+            f"frameborder='0' "
+            f"allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share' "
+            f"allowfullscreen style='display:block;'></iframe></div>"
+        )
+    return (f"<div style='text-align:center;margin:8px 0 16px 0;'>"
             f"<a href='{search_url}' target='_blank' "
-            f"style='color:#FF0000;font-weight:bold;text-decoration:none;'>"
-            f"▶ Play '{song_name}' on YouTube</a></div>")
+            f"style='display:inline-block;padding:10px 28px;background:#FF0000;color:white;"
+            f"text-decoration:none;border-radius:25px;font-weight:bold;'>▶ Play on YouTube</a></div>")
 
 def apply_theme(mood):
     accent = MOOD_ACCENT.get(mood, "#1DB954")
@@ -515,23 +507,11 @@ with tab_rec:
             </div>
             """, unsafe_allow_html=True)
 
-            # YouTube direct link — embedding blocked by most songs due to copyright
-            song_url = str(song.get('URL', '')).strip()
-            if song_url and song_url.lower() != 'nan' and song_url.startswith('http'):
-                play_url = song_url
-            else:
-                play_url = f"https://www.youtube.com/results?search_query={song['Song'].replace(' ', '+')}"
-
-            st.markdown(f"""
-            <div style='text-align:center;margin:8px 0 16px 0;'>
-                <a href="{play_url}" target="_blank"
-                   style="display:inline-block;padding:12px 32px;background:#FF0000;
-                   color:white;text-decoration:none;border-radius:25px;font-weight:bold;
-                   font-size:1rem;box-shadow:0 4px 15px rgba(255,0,0,0.3);">
-                   ▶ Play on YouTube
-                </a>
-            </div>
-            """, unsafe_allow_html=True)
+            # YouTube nocookie embed player
+            st.markdown(
+                get_yt_embed_html(song.get('URL', ''), song['Song'], song.get('Language', 'Hindi')),
+                unsafe_allow_html=True
+            )
 
             fav_col, queue_col, _ = st.columns([1, 1, 3])
             with fav_col:
