@@ -69,6 +69,8 @@ def get_yt_embed_html(url: str, song_name: str) -> str:
             f"frameborder='0' allow='accelerometer; autoplay; clipboard-write; "
             f"encrypted-media; gyroscope; picture-in-picture' allowfullscreen "
             f"style='border-radius:12px;display:block;'></iframe></div>")
+
+def apply_theme(mood):
     accent = MOOD_ACCENT.get(mood, "#1DB954")
     bg = MOOD_GRADIENTS.get(mood, MOOD_GRADIENTS["Relaxed"])
     st.markdown(f"""
