@@ -2,7 +2,7 @@
 title: PLM Devs AI Music Recommender
 emoji: 🎵
 colorFrom: green
-colorTo: black
+colorTo: gray
 sdk: streamlit
 sdk_version: 1.28.0
 app_file: app.py

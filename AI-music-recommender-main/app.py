@@ -19,13 +19,9 @@ from auth import (register_user, login_user, save_history_entry,
 from pomodoro import render_pomodoro
 from gamification import update_stats, load_stats, get_level, BADGES
 from social import (share_playlist, load_shared_playlists, like_shared_playlist,
-                    load_favourites, toggle_favourite, export_playlist_text,
-                    follow_user, unfollow_user, load_friends, get_leaderboard_top,
-                    get_user_rank, update_leaderboard)
+                    load_favourites, toggle_favourite, export_playlist_text)
 from chatbot import MusicChatbot
 from weekly_report import generate_weekly_report, export_report_text
-from search import SongSearchEngine
-from performance import load_songs_dataframe, get_unique_song_values, paginate_items, render_pagination_controls
 
 st.set_page_config(page_title="PLM Devs AI Recommender", page_icon="🎵", layout="wide")
 
@@ -163,7 +159,6 @@ if st.session_state.env is None:       st.session_state.env = MusicEnv()
 if st.session_state.nlp is None:       st.session_state.nlp = NLPEngine()
 if st.session_state.recommender is None: st.session_state.recommender = Recommender()
 if st.session_state.chatbot is None:   st.session_state.chatbot = MusicChatbot()
-if st.session_state.search_engine is None: st.session_state.search_engine = SongSearchEngine()
 
 apply_theme(st.session_state.get('current_mood', 'Relaxed') or 'Relaxed')
 
@@ -679,99 +674,12 @@ with tab_social:
     with subtab_leaderboard:
         st.subheader("🏆 Global Leaderboard")
         st.write("Top players by XP points!")
-        
-        leaderboard = get_leaderboard_top(limit=50)
-        
-        if not leaderboard:
-            st.info("No leaderboard data yet. Be the first to earn XP!")
-        else:
-            # Display current user's rank
-            my_rank, my_xp = get_user_rank(st.session_state.username)
-            if my_rank:
-                rank_color = {1: "🥇", 2: "🥈", 3: "🥉"}.get(my_rank, f"#{my_rank}")
-                st.success(f"{rank_color} Your Rank: **#{my_rank}** with **{my_xp} XP**")
-            
-            st.divider()
-            
-            # Leaderboard table
-            top_n = 20
-            lb_data = []
-            for i, user in enumerate(leaderboard[:top_n], 1):
-                medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(i, f"{i}.")
-                lb_data.append({
-                    "Rank": medal,
-                    "User": user["username"],
-                    "Level": user["level"],
-                    "XP": user["xp"],
-                })
-            
-            df_lb = pd.DataFrame(lb_data)
-            st.dataframe(df_lb, use_container_width=True, hide_index=True)
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric("Total Players", len(leaderboard))
-            with col2:
-                top_xp = leaderboard[0]["xp"] if leaderboard else 0
-                st.metric("Top Score", f"{top_xp} XP")
+        st.info("Leaderboard coming soon! Keep earning XP to climb the ranks.")
     
     # ──── FRIENDS ────
     with subtab_friends:
         st.subheader("👥 Friends")
-        
-        friends_data = load_friends(st.session_state.username)
-        following = friends_data.get("following", [])
-        followers = friends_data.get("followers", [])
-        
-        col_follow, col_followers = st.columns(2)
-        with col_follow:
-            st.metric("Following", len(following))
-        with col_followers:
-            st.metric("Followers", len(followers))
-        
-        st.divider()
-        
-        # Find and follow users
-        st.write("### 🔍 Find & Follow Users")
-        available_users = []
-        try:
-            all_users = json.load(open("users.json"))
-            available_users = [u for u in all_users.keys() if u != st.session_state.username and u not in following]
-        except:
-            pass
-        
-        if available_users:
-            user_to_follow = st.selectbox("Select user to follow", [""] + available_users)
-            if user_to_follow and st.button(f"Follow @{user_to_follow} →", use_container_width=True):
-                success, msg = follow_user(st.session_state.username, user_to_follow)
-                if success:
-                    st.success(msg)
-                    st.rerun()
-        else:
-            st.caption("No users available to follow or already following everyone!")
-        
-        st.divider()
-        
-        # Show following list
-        if following:
-            st.write("### 👤 Following")
-            for user in following:
-                col1, col2 = st.columns([3, 1])
-                with col1:
-                    st.caption(f"@{user}")
-                with col2:
-                    if st.button("💔 Unfollow", key=f"unf_{user}", use_container_width=True):
-                        unfollow_user(st.session_state.username, user)
-                        st.rerun()
-        
-        st.divider()
-        
-        # Show followers list
-        if followers:
-            st.write("### 👥 Followers")
-            st.caption(f"You have **{len(followers)}** followers!")
-            for follower in followers[:10]:
-                st.caption(f"@{follower} follows you")
+        st.info("Friends feature coming soon!")
     
     # ──── PLAYLISTS ────
     with subtab_playlists:
