@@ -1,3 +1,15 @@
+---
+title: PLM Devs AI Music Recommender
+emoji: 🎵
+colorFrom: green
+colorTo: black
+sdk: streamlit
+sdk_version: 1.28.0
+app_file: app.py
+pinned: true
+license: mit
+---
+
 # 🎵 Mood-Based AI Music Recommender
 
 <div align="center">
