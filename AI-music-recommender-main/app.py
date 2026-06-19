@@ -19,37 +19,29 @@ from auth import (register_user, login_user, save_history_entry,
 from pomodoro import render_pomodoro
 from gamification import update_stats, load_stats, get_level, BADGES
 from social import (share_playlist, load_shared_playlists, like_shared_playlist,
-                    load_favourites, toggle_favourite, export_playlist_text,
-                    get_leaderboard_top, get_user_rank, follow_user, unfollow_user,
-                    load_friends)
+                    load_favourites, toggle_favourite, export_playlist_text)
 from chatbot import MusicChatbot
 from weekly_report import generate_weekly_report, export_report_text
-from ratings import save_rating, get_rating, get_top_rated_songs, get_rating_stats
-from playlist_generator import generate_playlist, get_preset_playlists
-from content_filter import get_similar_songs, get_recommendations_by_profile
-from social import add_comment, get_comments
-from ui_components import (
-    inject_global_css, render_animated_header, render_song_card,
-    render_mood_selector, render_skeleton_cards, show_toast,
-    render_now_playing_bar, render_sidebar, render_onboarding,
-    MOOD_ACCENT, MOOD_GRADIENTS, MOOD_EMOJI,
-)
 
 st.set_page_config(page_title="PLM Devs AI Recommender", page_icon="🎵", layout="wide")
 
 # ═══════════════════════════════════════════════════════
 #  MOOD THEME — dynamic background color per mood
 # ═══════════════════════════════════════════════════════
-def apply_theme(mood: str):
-    """Thin wrapper — delegates to ui_components.inject_global_css."""
-    accent = MOOD_ACCENT.get(mood, "#1DB954")
-    bg     = MOOD_GRADIENTS.get(mood, MOOD_GRADIENTS["Relaxed"])
-    inject_global_css(accent=accent, bg=bg)
+MOOD_GRADIENTS = {
+    "Happy":   "linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #1a3a1a 100%)",
+    "Sad":     "linear-gradient(135deg, #0d0d1a 0%, #1a1a3e 40%, #0d1a2e 100%)",
+    "Focus":   "linear-gradient(135deg, #1a0d00 0%, #2e1a00 40%, #1a1a00 100%)",
+    "Relaxed": "linear-gradient(135deg, #001a1a 0%, #001a2e 40%, #0d1a1a 100%)",
+}
+MOOD_ACCENT = {
+    "Happy": "#FFD700", "Sad": "#6495ED", "Focus": "#FF8C00", "Relaxed": "#1DB954"
+}
 
 def get_yt_embed_html(url: str, song_name: str, language: str = "Hindi", spotify_url: str = "") -> str:
     """
     Priority:
-    1. SpotifyURL present → Spotify embed
+    1. SpotifyURL present → Spotify embed (30-sec preview, works for all languages)
     2. English + YouTube URL → nocookie embed
     3. Fallback → Play on YouTube button
     """
@@ -57,6 +49,8 @@ def get_yt_embed_html(url: str, song_name: str, language: str = "Hindi", spotify
     query = f"{song_name} official audio {language}".replace(' ', '+')
     yt_direct = str(url).strip() if url and str(url).strip().lower() != 'nan' else \
                 f"https://www.youtube.com/results?search_query={query}"
+
+    # 1. Spotify embed
     sp = str(spotify_url).strip() if spotify_url else ""
     if sp and sp.lower() != 'nan' and sp.startswith('http'):
         if '/embed/' not in sp:
@@ -64,33 +58,85 @@ def get_yt_embed_html(url: str, song_name: str, language: str = "Hindi", spotify
         return (
             f"<div style='border-radius:14px;overflow:hidden;margin:10px 0 16px 0;"
             f"box-shadow:0 4px 20px rgba(0,0,0,0.4);'>"
-            f"<iframe src='{sp}?utm_source=generator&theme=0' width='100%' height='152' "
-            f"frameborder='0' allowfullscreen='' "
+            f"<iframe src='{sp}?utm_source=generator&theme=0' "
+            f"width='100%' height='152' frameborder='0' allowfullscreen='' "
             f"allow='autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture' "
-            f"loading='lazy' style='border-radius:14px;display:block;'></iframe></div>"
+            f"loading='lazy' style='border-radius:14px;display:block;'></iframe>"
+            f"</div>"
         )
+
+    # 2. English — YouTube nocookie embed
     vid_id = None
     if url and str(url).strip() and str(url).strip().lower() != 'nan':
         m = re.search(r'(?:v=|youtu\.be/|/embed/)([A-Za-z0-9_-]{11})', str(url))
         if m:
             vid_id = m.group(1)
+
     if vid_id and language == 'English':
         return (
             f"<div style='border-radius:14px;overflow:hidden;margin:10px 0 16px 0;"
             f"box-shadow:0 4px 20px rgba(0,0,0,0.5);'>"
             f"<iframe width='100%' height='240' "
             f"src='https://www.youtube-nocookie.com/embed/{vid_id}?rel=0&modestbranding=1' "
-            f"frameborder='0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; "
-            f"gyroscope; picture-in-picture; web-share' allowfullscreen "
-            f"style='display:block;'></iframe></div>"
+            f"frameborder='0' "
+            f"allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share' "
+            f"allowfullscreen style='display:block;'></iframe></div>"
         )
+
+    # 3. Fallback button
     return (
         f"<div style='text-align:center;margin:8px 0 18px 0;'>"
         f"<a href='{yt_direct}' target='_blank' "
-        f"style='display:inline-block;padding:12px 32px;background:#FF0000;color:white;"
-        f"text-decoration:none;border-radius:25px;font-weight:bold;font-size:1rem;"
-        f"box-shadow:0 4px 15px rgba(255,0,0,0.4);'>▶ Play on YouTube</a></div>"
+        f"style='display:inline-block;padding:12px 32px;background:#FF0000;"
+        f"color:white;text-decoration:none;border-radius:25px;font-weight:bold;"
+        f"font-size:1rem;box-shadow:0 4px 15px rgba(255,0,0,0.4);'>▶ Play on YouTube</a>"
+        f"</div>"
     )
+
+def apply_theme(mood):
+    accent = MOOD_ACCENT.get(mood, "#1DB954")
+    bg = MOOD_GRADIENTS.get(mood, MOOD_GRADIENTS["Relaxed"])
+    st.markdown(f"""
+    <style>
+    .stApp {{ background: {bg}; }}
+    .song-box {{
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        backdrop-filter: blur(12px);
+        padding: 25px; border-radius: 16px;
+        border-left: 6px solid {accent};
+        color: white; text-align: center;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        transition: transform 0.3s ease;
+    }}
+    .song-box:hover {{ transform: translateY(-5px); }}
+    .title-text {{
+        text-align: center; font-weight: 800;
+        background: -webkit-linear-gradient(45deg, {accent}, #FFFFFF);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        font-family: 'Helvetica Neue', sans-serif; padding-bottom: 10px;
+    }}
+    .badge-card {{
+        display: inline-block; background: rgba(255,255,255,0.08);
+        border: 1px solid {accent}55; border-radius: 12px;
+        padding: 10px 16px; margin: 6px; text-align: center; min-width: 140px;
+    }}
+    .history-card {{
+        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px; padding: 15px 20px; margin-bottom: 12px;
+    }}
+    .xp-bar-wrap {{
+        background: rgba(255,255,255,0.1); border-radius: 20px;
+        height: 12px; width: 100%; margin: 6px 0;
+    }}
+    .stTabs [data-baseweb="tab-list"] {{ gap: 10px; }}
+    .stTabs [data-baseweb="tab"] {{
+        height: 46px; background-color: transparent;
+        border-radius: 8px 8px 0 0; padding: 8px 14px; font-size: 1rem;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════
 #  SESSION STATE INIT
@@ -98,18 +144,12 @@ def get_yt_embed_html(url: str, song_name: str, language: str = "Hindi", spotify
 defaults = {
     'logged_in': False, 'is_admin': False, 'username': None,
     'env': None, 'nlp': None, 'recommender': None, 'agent': None, 'chatbot': None,
+    'search_engine': None,
     'last_genre': 'None', 'current_songs': [], 'playlist_queue': [],
     'current_state': None, 'current_action': None, 'feedback_given': False,
     'current_mood': 'Relaxed', 'current_language': 'Hindi',
     'new_badges': [], 'chat_history': [],
     'search_results': [], 'previous_search_query': '',
-    'checkin_done_today': None,
-    'gen_playlist': [],
-    'gen_playlist_total': 0.0,
-    'onboard_done': False,
-    'now_playing_song': None,
-    'now_playing_mood': 'Relaxed',
-    'now_playing_genre': '',
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -243,7 +283,7 @@ if st.session_state.is_admin:
     st.write("---")
 
     st.header("1. Global AI Matrices")
-    files = glob.glob(os.path.join(os.path.dirname(__file__), "q_table_*.json"))
+    files = glob.glob("q_table_*.json")
     if not files:
         st.info("No user data recorded yet.")
     else:
@@ -267,11 +307,9 @@ if st.session_state.is_admin:
         new_energy = st.selectbox("Energy", ["Low", "Medium", "High"])
         new_lang  = st.selectbox("Language", ["Hindi", "English", "Punjabi", "Tamil", "Telugu"])
         new_url   = st.text_input("YouTube URL (Optional)")
-        new_spotify = st.text_input("Spotify Embed URL (Optional)")
         if st.form_submit_button("Add to Universe") and new_song.strip():
-            csv_path = os.path.join(os.path.dirname(__file__), "data", "songs.csv")
-            with open(csv_path, "a", encoding="utf-8") as f:
-                f.write(f"\n{new_song},{new_mood},{new_genre},{new_energy},{new_lang},{new_url},{new_spotify}")
+            with open("data/songs.csv", "a", encoding="utf-8") as f:
+                f.write(f"\n{new_song},{new_mood},{new_genre},{new_energy},{new_lang},{new_url}")
             st.success("Injected!")
             # Reload both recommender and chatbot so new song is available immediately
             st.session_state.recommender = Recommender()
@@ -279,7 +317,7 @@ if st.session_state.is_admin:
 
     st.write("---")
     st.header("3. All Users History")
-    for hf in glob.glob(os.path.join(os.path.dirname(__file__), "history_*.json")):
+    for hf in glob.glob("history_*.json"):
         uname = hf.replace("history_", "").replace(".json", "")
         with st.expander(f"History: {uname}"):
             with open(hf) as fp: data = json.load(fp)
@@ -289,36 +327,38 @@ if st.session_state.is_admin:
     st.stop()
 
 # ═══════════════════════════════════════════════════════
-#  ONBOARDING — first-time users
-# ═══════════════════════════════════════════════════════
-if not st.session_state.get('onboard_done', False):
-    render_onboarding()
-    st.stop()
-
-# ═══════════════════════════════════════════════════════
 #  SIDEBAR
 # ═══════════════════════════════════════════════════════
 with st.sidebar:
     stats = load_stats(st.session_state.username) if st.session_state.username else {}
-    xp     = stats.get("xp", 0)
-    level  = get_level(xp)
+    xp = stats.get("xp", 0)
+    level = get_level(xp)
     streak = stats.get("streak", 0)
-    favs   = load_favourites(st.session_state.username) if st.session_state.username else []
 
-    render_sidebar(
-        username=st.session_state.username or "Guest",
-        xp=xp, level=level, streak=streak,
-        queue=st.session_state.playlist_queue,
-        favs=favs,
-        mood=st.session_state.get('current_mood', 'Relaxed') or 'Relaxed',
-    )
+    st.markdown(f"### 👤 {st.session_state.username}")
+    st.markdown(f"**{level}** &nbsp; | &nbsp; ⚡ {xp} XP &nbsp; | &nbsp; 🔥 {streak} day streak")
+    st.divider()
 
-    if st.button("🗑️ Clear Queue", use_container_width=True, key="clear_queue",
-                 disabled=not st.session_state.playlist_queue):
-        st.session_state.playlist_queue = []
-        st.rerun()
+    st.markdown("### 🗂️ Session Queue")
+    if not st.session_state.playlist_queue:
+        st.caption("Queue is empty. Like a song to add it!")
+    else:
+        for item in st.session_state.playlist_queue[::-1][:8]:
+            st.markdown(f"- 🎵 {item}")
+        if st.button("🗑️ Clear Queue", use_container_width=True, key="clear_queue"):
+            st.session_state.playlist_queue = []
+            st.rerun()
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.divider()
+    favs = load_favourites(st.session_state.username) if st.session_state.username else []
+    st.markdown(f"### ❤️ Favourites ({len(favs)})")
+    if favs:
+        for fav in favs[-5:][::-1]:
+            st.caption(f"🎵 {fav['song']}")
+    else:
+        st.caption("No favourites yet.")
+
+    st.divider()
     if st.button("🚪 Logout", use_container_width=True):
         for k in list(st.session_state.keys()):
             del st.session_state[k]
@@ -329,51 +369,20 @@ with st.sidebar:
 # ═══════════════════════════════════════════════════════
 if st.session_state.new_badges:
     for badge in st.session_state.new_badges:
-        show_toast(f"New Badge Unlocked: {badge}", icon="🏅",
-                   mood=st.session_state.get('current_mood', 'Relaxed'))
+        st.toast(f"🏅 New Badge Unlocked: {badge}", icon="🎉")
     st.session_state.new_badges = []
-
-# ═══════════════════════════════════════════════════════
-#  DAILY MOOD CHECK-IN
-# ═══════════════════════════════════════════════════════
-_today = datetime.date.today().isoformat()
-if st.session_state.get('checkin_done_today') != _today:
-    with st.container():
-        st.markdown(f"""
-        <div style='background:linear-gradient(90deg,rgba(29,185,84,0.15),rgba(100,149,237,0.1));
-        border:1px solid rgba(255,255,255,0.15);border-radius:16px;
-        padding:20px 24px;margin-bottom:20px;text-align:center;'>
-        <h3 style='margin:0 0 6px 0;'>🌅 Good {'Morning' if 5<=datetime.datetime.now().hour<12 else 'Afternoon' if 12<=datetime.datetime.now().hour<17 else 'Evening' if 17<=datetime.datetime.now().hour<21 else 'Night'}, {st.session_state.username}!</h3>
-        <p style='opacity:0.75;margin:0 0 14px 0;font-size:0.95rem;'>Aaj kaisa feel ho raha hai? Apna mood check-in karo 👇</p>
-        </div>
-        """, unsafe_allow_html=True)
-        ci_cols = st.columns(4)
-        ci_options = [("😄 Happy", "Happy"), ("😢 Sad", "Sad"), ("🎯 Focus", "Focus"), ("😌 Relaxed", "Relaxed")]
-        for col, (label, mood_val) in zip(ci_cols, ci_options):
-            with col:
-                if st.button(label, use_container_width=True, key=f"ci_{mood_val}"):
-                    st.session_state.checkin_done_today = _today
-                    st.session_state.current_mood = mood_val
-                    apply_theme(mood_val)
-                    # Save to journal automatically
-                    save_journal_entry(st.session_state.username, mood_val, f"Daily check-in: {mood_val}")
-                    st.toast(f"✅ Check-in done! Mood set to {mood_val}")
-                    st.rerun()
-        if st.button("⏭️ Skip check-in", key="skip_checkin"):
-            st.session_state.checkin_done_today = _today
-            st.rerun()
 
 # ═══════════════════════════════════════════════════════
 #  MAIN HEADER
 # ═══════════════════════════════════════════════════════
-render_animated_header(st.session_state.get('current_mood', 'Relaxed') or 'Relaxed')
+st.markdown("<h1 class='title-text'>🎵 Mood-Based AI Music Recommender</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;font-size:1.1rem;opacity:0.7;'>By PLM Devs 🚀</p>", unsafe_allow_html=True)
 
 (tab_rec, tab_match, tab_social, tab_analytics,
- tab_history, tab_journal, tab_profile, tab_chat, tab_report, tab_search,
- tab_pgen) = st.tabs([
+ tab_history, tab_journal, tab_profile, tab_chat, tab_report, tab_search) = st.tabs([
     "🎧 Recommender", "🤝 Taste Match", "🌐 Community",
     "📈 Analytics", "📜 History", "📓 Mood Journal", "👤 Profile",
-    "🤖 AI Chatbot", "📊 Weekly Report", "🔍 Search Songs", "🎵 Auto Playlist"
+    "🤖 AI Chatbot", "📊 Weekly Report", "🔍 Search Songs"
 ])
 
 # ═══════════════════════════════════════════════════════
@@ -384,26 +393,19 @@ with tab_rec:
     ui_col1, ui_col2 = st.columns([2, 1])
 
     with ui_col1:
-        # ── Mood Selector: emoji cards ──
-        detected_mood = render_mood_selector(st.session_state.current_mood)
-        if detected_mood != st.session_state.current_mood:
-            st.session_state.current_mood = detected_mood
-            apply_theme(detected_mood)
-            st.rerun()
-
-        # ── Additional input modes ──
-        input_mode = st.radio("Or refine with:",
-                              ["📝 Text/Sentence", "🎤 Voice Audio"],
+        input_mode = st.radio("Express your mood:",
+                              ["📝 Text/Sentence", "🎤 Voice Audio", "⬇️ Select Dropdown"],
                               horizontal=True)
+        detected_mood = st.session_state.current_mood
 
-        if input_mode == "📝 Text/Sentence":
+        if input_mode == "⬇️ Select Dropdown":
+            detected_mood = st.selectbox("Select Mood:", st.session_state.env.moods)
+
+        elif input_mode == "📝 Text/Sentence":
             user_text = st.text_area("Tell the AI how your day is going...",
                                      placeholder="E.g., I had an amazing day but now I just want to chill.")
             if user_text:
                 detected_mood = st.session_state.nlp.detect_mood_from_text(user_text)
-                if detected_mood != st.session_state.current_mood:
-                    st.session_state.current_mood = detected_mood
-                    apply_theme(detected_mood)
                 st.info(f"🧠 AI Detected Mood: **{detected_mood}**")
 
         elif input_mode == "🎤 Voice Audio":
@@ -417,12 +419,10 @@ with tab_rec:
                 if text:
                     st.success(f"You said: '{text}'")
                     detected_mood = st.session_state.nlp.detect_mood_from_text(text)
-                    if detected_mood != st.session_state.current_mood:
-                        st.session_state.current_mood = detected_mood
-                        apply_theme(detected_mood)
                     st.info(f"🧠 AI Detected Mood: **{detected_mood}**")
                 else:
-                    st.warning("Voice transcription unavailable on this server. Please use Text mode instead.")
+                    st.warning("Could not transcribe (needs internet). Defaulting to Focus.")
+                    detected_mood = "Focus"
 
     with ui_col2:
         # Auto time detection
@@ -490,17 +490,12 @@ with tab_rec:
 
     if get_rec:
         st.session_state.feedback_given = False
-        # Show skeleton cards while computing
-        skel_placeholder = st.empty()
-        with skel_placeholder.container():
-            render_skeleton_cards(3)
         state = st.session_state.env.get_state(detected_mood, time_of_day, st.session_state.last_genre)
         st.session_state.current_state = state
         action = st.session_state.agent.choose_action(state)
         st.session_state.current_action = action
         songs = st.session_state.recommender.recommend_songs(detected_mood, action, language, n=3)
         st.session_state.current_songs = songs
-        skel_placeholder.empty()
         st.rerun()
 
     if st.session_state.current_songs:
@@ -518,16 +513,28 @@ with tab_rec:
         favs_list = [f["song"] for f in load_favourites(st.session_state.username)]
 
         for i, song in enumerate(st.session_state.current_songs):
+            spotify_url = f"https://open.spotify.com/search/{song['Song'].replace(' ', '%20')}"
+            yt_url = f"https://www.youtube.com/results?search_query={song['Song'].replace(' ', '+')}"
             is_fav = song['Song'] in favs_list
             fav_icon = "❤️" if is_fav else "🤍"
+            song_url = song.get('URL', '')
 
-            # ── Glassmorphism card ──
-            render_song_card(song, detected_mood)
+            st.markdown(f"""
+            <div class="song-box">
+                <h2>{song['Song']}</h2>
+                <p style='opacity:0.8;'>🎭 {song['Mood']} &nbsp;|&nbsp; 🎸 {song['Genre']} &nbsp;|&nbsp; 🌐 {song.get('Language','English')}</p>
+                <a href="{spotify_url}" target="_blank"
+                   style="display:inline-block;margin:8px 4px;padding:8px 16px;background:#1DB954;
+                   color:white;text-decoration:none;border-radius:20px;font-weight:bold;">🎧 Spotify</a>
+                <a href="{yt_url}" target="_blank"
+                   style="display:inline-block;margin:8px 4px;padding:8px 16px;background:#FF0000;
+                   color:white;text-decoration:none;border-radius:20px;font-weight:bold;">▶ Open YouTube</a>
+            </div>
+            """, unsafe_allow_html=True)
 
-            # YouTube / Spotify embed
+            # YouTube nocookie embed player
             st.markdown(
-                get_yt_embed_html(song.get('URL', ''), song['Song'],
-                                  song.get('Language', 'Hindi'), song.get('SpotifyURL', '')),
+                get_yt_embed_html(song.get('URL', ''), song['Song'], song.get('Language', 'Hindi'), song.get('SpotifyURL', '')),
                 unsafe_allow_html=True
             )
 
@@ -591,13 +598,6 @@ with tab_rec:
                                    st.session_state.current_songs,
                                    detected_mood, action, feedback)
 
-                # Update now-playing state
-                if st.session_state.current_songs:
-                    _np = st.session_state.current_songs[0]
-                    st.session_state.now_playing_song  = _np['Song']
-                    st.session_state.now_playing_mood  = _np.get('Mood', detected_mood)
-                    st.session_state.now_playing_genre = _np.get('Genre', '')
-
                 # Update gamification
                 _, new_badges = update_stats(st.session_state.username, detected_mood, action, feedback)
                 if new_badges:
@@ -615,53 +615,13 @@ with tab_rec:
         else:
             st.success("Feedback recorded. Get new recommendations!")
 
-        # ── Star Ratings per song ──────────────────────────
-        st.markdown("#### ⭐ Rate These Songs")
-        st.caption("Zyada accurate recommendations ke liye har song ko rate karo (1-5 stars).")
-        for song in st.session_state.current_songs:
-            sname = song['Song']
-            current_r = get_rating(st.session_state.username, sname)
-            r_cols = st.columns([3, 1, 1, 1, 1, 1])
-            r_cols[0].markdown(f"🎵 **{sname}**")
-            stars = ["⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"]
-            for idx, s_label in enumerate(stars, 1):
-                btn_style = "primary" if current_r == idx else "secondary"
-                if r_cols[idx].button(s_label, key=f"rate_{sname}_{idx}", type=btn_style):
-                    xp_earned = save_rating(st.session_state.username, sname, idx)
-                    if xp_earned:
-                        # Add XP to stats
-                        from gamification import load_stats as _ls, save_stats as _ss
-                        _stats = _ls(st.session_state.username)
-                        _stats["xp"] = _stats.get("xp", 0) + xp_earned
-                        _ss(st.session_state.username, _stats)
-                    st.toast(f"{'⭐' * idx} Rated {sname}!")
-                    st.rerun()
-
-        # ── Content-based Similar Songs ────────────────────
-        if st.session_state.current_songs:
-            with st.expander("🔗 Similar Songs (Content AI)"):
-                ref_song = st.session_state.current_songs[0]['Song']
-                similar = get_similar_songs(ref_song, n=5, language_filter=st.session_state.current_language)
-                if similar:
-                    for sim in similar:
-                        sp = f"https://open.spotify.com/search/{sim['Song'].replace(' ','%20')}"
-                        yt = f"https://www.youtube.com/results?search_query={sim['Song'].replace(' ','+')}"
-                        st.markdown(
-                            f"<div class='history-card' style='padding:10px 16px;'>"
-                            f"🎵 <b>{sim['Song']}</b> &nbsp;"
-                            f"<span style='opacity:0.65;font-size:0.82rem;'>{sim['Mood']} · {sim['Genre']} · "
-                            f"Match: {sim.get('similarity',0)}%</span>&nbsp;&nbsp;"
-                            f"<a href='{sp}' target='_blank' style='color:#1DB954;font-size:0.82rem;'>Spotify</a> "
-                            f"<a href='{yt}' target='_blank' style='color:#ff4444;font-size:0.82rem;'>YouTube</a>"
-                            f"</div>", unsafe_allow_html=True)
-
 # ═══════════════════════════════════════════════════════
 #  TAB: TASTE MATCH
 # ═══════════════════════════════════════════════════════
 with tab_match:
     st.header("🤝 AI Friend Match")
     st.write("Compare your musical DNA with another user's Q-Table.")
-    files = glob.glob(os.path.join(os.path.dirname(__file__), "q_table_*.json"))
+    files = glob.glob("q_table_*.json")
     other_users = [f.replace("q_table_", "").replace(".json", "")
                    for f in files if "admin" not in f and
                    f.replace("q_table_", "").replace(".json", "") != st.session_state.username]
@@ -714,86 +674,12 @@ with tab_social:
     with subtab_leaderboard:
         st.subheader("🏆 Global Leaderboard")
         st.write("Top players by XP points!")
-
-        leaderboard = get_leaderboard_top(20)
-        if not leaderboard:
-            st.info("Leaderboard is empty. Start earning XP to appear here!")
-        else:
-            my_rank, my_xp = get_user_rank(st.session_state.username)
-            if my_rank:
-                st.markdown(
-                    f"<div style='text-align:center;background:rgba(255,255,255,0.05);"
-                    f"border:1px solid #1DB95455;border-radius:12px;padding:12px;margin-bottom:16px;'>"
-                    f"🎯 Your Rank: <b>#{my_rank}</b> &nbsp;|&nbsp; ⚡ {my_xp} XP"
-                    f"</div>", unsafe_allow_html=True)
-
-            for i, user in enumerate(leaderboard, 1):
-                medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(i, f"#{i}")
-                is_me = user["username"] == st.session_state.username
-                bg = "rgba(29,185,84,0.12)" if is_me else "rgba(255,255,255,0.04)"
-                border = "#1DB954" if is_me else "rgba(255,255,255,0.1)"
-                st.markdown(
-                    f"<div style='background:{bg};border:1px solid {border};"
-                    f"border-radius:10px;padding:10px 16px;margin-bottom:8px;"
-                    f"display:flex;justify-content:space-between;align-items:center;'>"
-                    f"<span>{medal} &nbsp; <b>{user['username']}</b>"
-                    f"{'&nbsp; 👈 You' if is_me else ''}</span>"
-                    f"<span style='opacity:0.8;'>{user['level']} &nbsp;|&nbsp; ⚡ {user['xp']} XP</span>"
-                    f"</div>", unsafe_allow_html=True)
-
+        st.info("Leaderboard coming soon! Keep earning XP to climb the ranks.")
+    
     # ──── FRIENDS ────
     with subtab_friends:
         st.subheader("👥 Friends")
-
-        all_q_files = glob.glob(os.path.join(os.path.dirname(__file__), "q_table_*.json"))
-        all_users = [
-            f.replace(os.path.join(os.path.dirname(__file__), "q_table_"), "").replace(".json", "")
-            for f in all_q_files
-            if "admin" not in f
-               and f.replace(os.path.join(os.path.dirname(__file__), "q_table_"), "").replace(".json", "") != st.session_state.username
-        ]
-
-        friends_data = load_friends(st.session_state.username)
-        following = friends_data.get("following", [])
-        followers = friends_data.get("followers", [])
-
-        f_col1, f_col2 = st.columns(2)
-        with f_col1:
-            st.markdown(f"**Following ({len(following)})**")
-            if following:
-                for u in following:
-                    fc1, fc2 = st.columns([3, 1])
-                    fc1.write(f"👤 {u}")
-                    if fc2.button("Unfollow", key=f"unfollow_{u}"):
-                        _, msg = unfollow_user(st.session_state.username, u)
-                        st.toast(msg)
-                        st.rerun()
-            else:
-                st.caption("You're not following anyone yet.")
-
-        with f_col2:
-            st.markdown(f"**Followers ({len(followers)})**")
-            if followers:
-                for u in followers:
-                    st.write(f"👤 {u}")
-            else:
-                st.caption("No followers yet.")
-
-        st.divider()
-        st.markdown("**Discover Users**")
-        if not all_users:
-            st.caption("No other users found. Ask friends to sign up!")
-        else:
-            for u in all_users:
-                dc1, dc2 = st.columns([3, 1])
-                dc1.write(f"👤 {u}")
-                if u in following:
-                    dc2.button("✅ Following", key=f"already_{u}", disabled=True)
-                else:
-                    if dc2.button("Follow", key=f"follow_{u}", type="primary"):
-                        _, msg = follow_user(st.session_state.username, u)
-                        st.toast(msg)
-                        st.rerun()
+        st.info("Friends feature coming soon!")
     
     # ──── PLAYLISTS ────
     with subtab_playlists:
@@ -824,23 +710,6 @@ with tab_social:
                         if st.button(btn_label, key=f"like_p_{p['id']}", disabled=already_liked):
                             like_shared_playlist(p["id"], st.session_state.username)
                             st.rerun()
-
-                    # Comments section
-                    existing_comments = get_comments(p["id"])
-                    with st.expander(f"💬 Comments ({len(existing_comments)})", expanded=False):
-                        for cm in existing_comments:
-                            st.markdown(
-                                f"<div class='comment-bubble'>"
-                                f"<b style='color:#1DB954;'>@{cm['username']}</b> "
-                                f"<span style='opacity:0.5;font-size:0.78rem;'>{cm['timestamp']}</span><br>"
-                                f"{cm['text']}"
-                                f"</div>", unsafe_allow_html=True)
-                        with st.form(key=f"cmt_form_{p['id']}"):
-                            cmt_text = st.text_input("Add a comment…", key=f"cmt_{p['id']}", label_visibility="collapsed",
-                                                     placeholder="Your thoughts on this playlist…")
-                            if st.form_submit_button("Post 💬") and cmt_text.strip():
-                                add_comment(p["id"], st.session_state.username, cmt_text.strip())
-                                st.rerun()
 
 # ═══════════════════════════════════════════════════════
 #  TAB: ANALYTICS
@@ -900,7 +769,7 @@ with tab_history:
             </div>""", unsafe_allow_html=True)
 
         if st.button("🗑️ Clear History", type="secondary"):
-            hf = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"history_{st.session_state.username}.json")
+            hf = f"history_{st.session_state.username}.json"
             if os.path.exists(hf): os.remove(hf)
             st.success("Cleared.")
             st.rerun()
@@ -1024,71 +893,11 @@ with tab_profile:
             elif len(new_p) < 4:
                 st.error("Too short.")
             else:
-                _uf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "users.json")
-                with open(_uf, 'r') as f: users = json.load(f)
+                USERS_FILE = "users.json"
+                with open(USERS_FILE, 'r') as f: users = json.load(f)
                 users[st.session_state.username]["password"] = hashlib.sha256(new_p.encode()).hexdigest()
-                with open(_uf, 'w') as f: json.dump(users, f)
+                with open(USERS_FILE, 'w') as f: json.dump(users, f)
                 st.success("Password updated!")
-
-    # ── Music DNA Card ────────────────────────────────────
-    st.divider()
-    st.subheader("🧬 Your Music DNA Card")
-    st.caption("Teri unique music personality — share karo apne dosto ke saath!")
-
-    r_stats = get_rating_stats(st.session_state.username)
-    top_rated = get_top_rated_songs(st.session_state.username, n=3)
-    fav_mood = max(stats.get("mood_counts", {"Relaxed": 1}),
-                   key=stats.get("mood_counts", {"Relaxed": 1}).get, default="Relaxed")
-    fav_genre_list = stats.get("genres_tried", [])
-    fav_genre_display = fav_genre_list[0] if fav_genre_list else "—"
-    dna_accent = MOOD_ACCENT.get(fav_mood, "#1DB954")
-    mood_emoji_map = {"Happy": "😄", "Sad": "😢", "Focus": "🎯", "Relaxed": "😌"}
-
-    # Build top songs display
-    top_songs_html = ""
-    for rank, (sname, rating) in enumerate(top_rated, 1):
-        top_songs_html += f"<div style='margin:3px 0;'>{'⭐'*rating} {sname}</div>"
-    if not top_songs_html:
-        top_songs_html = "<div style='opacity:0.5;'>Rate songs to see your top picks!</div>"
-
-    st.markdown(f"""
-    <div class='dna-card' style='border-color:{dna_accent}55;'>
-        <div style='font-size:2.5rem;margin-bottom:4px;'>{mood_emoji_map.get(fav_mood,'🎵')}</div>
-        <h2 style='margin:0;background:-webkit-linear-gradient(45deg,{dna_accent},#fff);
-            -webkit-background-clip:text;-webkit-text-fill-color:transparent;'>
-            {st.session_state.username}
-        </h2>
-        <p style='opacity:0.6;margin:4px 0 18px 0;font-size:0.9rem;'>{level}</p>
-        <div style='display:flex;justify-content:center;gap:32px;flex-wrap:wrap;margin-bottom:18px;'>
-            <div><div style='font-size:1.6rem;font-weight:800;color:{dna_accent};'>{stats.get("total_sessions",0)}</div>
-                 <div style='opacity:0.6;font-size:0.8rem;'>Sessions</div></div>
-            <div><div style='font-size:1.6rem;font-weight:800;color:{dna_accent};'>{stats.get("streak",0)}🔥</div>
-                 <div style='opacity:0.6;font-size:0.8rem;'>Day Streak</div></div>
-            <div><div style='font-size:1.6rem;font-weight:800;color:{dna_accent};'>{xp}⚡</div>
-                 <div style='opacity:0.6;font-size:0.8rem;'>XP</div></div>
-            <div><div style='font-size:1.6rem;font-weight:800;color:{dna_accent};'>{r_stats["avg"]}★</div>
-                 <div style='opacity:0.6;font-size:0.8rem;'>Avg Rating</div></div>
-        </div>
-        <div style='display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;'>
-            <span style='background:{dna_accent}22;border:1px solid {dna_accent}55;
-                border-radius:20px;padding:4px 14px;font-size:0.85rem;'>
-                🎭 {fav_mood} Lover</span>
-            <span style='background:{dna_accent}22;border:1px solid {dna_accent}55;
-                border-radius:20px;padding:4px 14px;font-size:0.85rem;'>
-                🎸 {fav_genre_display} Fan</span>
-            <span style='background:{dna_accent}22;border:1px solid {dna_accent}55;
-                border-radius:20px;padding:4px 14px;font-size:0.85rem;'>
-                🏅 {len(stats.get("earned_badges",[]))} Badges</span>
-        </div>
-        <div style='text-align:left;max-width:320px;margin:0 auto;'>
-            <div style='opacity:0.6;font-size:0.78rem;margin-bottom:6px;'>🏆 TOP RATED SONGS</div>
-            {top_songs_html}
-        </div>
-        <p style='opacity:0.3;font-size:0.7rem;margin:16px 0 0 0;'>PLM Devs AI Music Recommender · {datetime.date.today().strftime("%d %b %Y")}</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.caption("💡 Screenshot karo aur share karo! Future update mein direct download bhi aayega.")
 
 # ═══════════════════════════════════════════════════════
 #  TAB: AI CHATBOT
@@ -1297,7 +1106,7 @@ with tab_search:
 
     # Load fresh data
     try:
-        df_all = pd.read_csv(os.path.join(os.path.dirname(__file__), "data", "songs.csv"))
+        df_all = pd.read_csv("data/songs.csv")
     except Exception:
         df_all = pd.DataFrame()
 
@@ -1369,127 +1178,3 @@ with tab_search:
                     st.session_state.playlist_queue.append(row['Song'])
                     st.toast(f"➕ {row['Song']} added to queue!")
                     st.rerun()
-
-# ═══════════════════════════════════════════════════════
-#  TAB: AUTO PLAYLIST GENERATOR
-# ═══════════════════════════════════════════════════════
-with tab_pgen:
-    st.header("🎵 Auto Playlist Generator")
-    st.write("Apni zaroorat batao — duration, mood, language — AI khud poora playlist bana dega!")
-
-    pg_col1, pg_col2 = st.columns([1, 1])
-
-    with pg_col1:
-        st.subheader("⚡ Quick Presets")
-        presets = get_preset_playlists()
-        for preset in presets:
-            if st.button(preset["name"], use_container_width=True, key=f"preset_{preset['name']}"):
-                with st.spinner("Generating playlist..."):
-                    songs, total = generate_playlist(
-                        mood=preset["mood"],
-                        language=preset["language"],
-                        duration_minutes=preset["duration"],
-                        genre=preset.get("genre"),
-                        energy=preset.get("energy"),
-                        avoid_songs=st.session_state.playlist_queue,
-                    )
-                st.session_state.gen_playlist = songs
-                st.session_state.gen_playlist_total = total
-                st.rerun()
-
-    with pg_col2:
-        st.subheader("🎛️ Custom Generator")
-        pg_mood = st.selectbox("Mood", st.session_state.env.moods, key="pg_mood")
-        pg_lang = st.selectbox("Language", ["Hindi", "English", "Punjabi", "Tamil", "Telugu"], key="pg_lang")
-        pg_dur  = st.slider("Duration (minutes)", min_value=10, max_value=120, value=30, step=5, key="pg_dur")
-        pg_genre = st.selectbox("Genre (optional)", ["Any"] + st.session_state.env.get_actions(), key="pg_genre")
-        pg_energy = st.selectbox("Energy (optional)", ["Any", "Low", "Medium", "High"], key="pg_energy")
-
-        if st.button("🎵 Generate My Playlist", use_container_width=True, type="primary", key="pg_generate"):
-            with st.spinner("Building your playlist..."):
-                songs, total = generate_playlist(
-                    mood=pg_mood,
-                    language=pg_lang,
-                    duration_minutes=pg_dur,
-                    genre=None if pg_genre == "Any" else pg_genre,
-                    energy=None if pg_energy == "Any" else pg_energy,
-                    avoid_songs=st.session_state.playlist_queue,
-                )
-            st.session_state.gen_playlist = songs
-            st.session_state.gen_playlist_total = total
-            st.rerun()
-
-    # ── Display generated playlist ──
-    if st.session_state.gen_playlist:
-        st.divider()
-        total_min = st.session_state.gen_playlist_total
-        st.markdown(
-            f"<div style='text-align:center;background:rgba(29,185,84,0.1);"
-            f"border:1px solid #1DB95444;border-radius:12px;padding:12px;margin-bottom:16px;'>"
-            f"✅ <b>{len(st.session_state.gen_playlist)} songs</b> generated &nbsp;|&nbsp; "
-            f"⏱️ ~{int(total_min)} minutes"
-            f"</div>", unsafe_allow_html=True)
-
-        add_all = st.button("➕ Add All to Queue", type="primary", key="pg_add_all")
-        if add_all:
-            for s in st.session_state.gen_playlist:
-                if s["Song"] not in st.session_state.playlist_queue:
-                    st.session_state.playlist_queue.append(s["Song"])
-            st.toast(f"✅ {len(st.session_state.gen_playlist)} songs added to queue!")
-            st.rerun()
-
-        for i, song in enumerate(st.session_state.gen_playlist, 1):
-            sp = f"https://open.spotify.com/search/{song['Song'].replace(' ','%20')}"
-            yt = f"https://www.youtube.com/results?search_query={song['Song'].replace(' ','+')}"
-            dur_str = f"{song.get('est_duration_min', 4.0):.1f} min"
-            mood_color = {"Happy": "#FFD700", "Sad": "#6495ED",
-                          "Focus": "#FF8C00", "Relaxed": "#1DB954"}.get(song.get("Mood", ""), "#1DB954")
-
-            pc1, pc2 = st.columns([4, 1])
-            with pc1:
-                st.markdown(f"""
-                <div class='pgen-card' style='border-left:4px solid {mood_color};'>
-                    <span style='opacity:0.5;font-size:0.8rem;'>#{i} · ⏱️ ~{dur_str}</span><br>
-                    <b style='font-size:1rem;'>🎵 {song['Song']}</b><br>
-                    <span style='opacity:0.65;font-size:0.82rem;'>
-                        🎭 {song.get('Mood','')} · 🎸 {song.get('Genre','')} ·
-                        🌐 {song.get('Language','')} · ⚡ {song.get('Energy','')}
-                    </span><br>
-                    <a href='{sp}' target='_blank' style='color:#1DB954;font-size:0.82rem;margin-right:10px;'>🎧 Spotify</a>
-                    <a href='{yt}' target='_blank' style='color:#ff4444;font-size:0.82rem;'>▶ YouTube</a>
-                </div>""", unsafe_allow_html=True)
-            with pc2:
-                in_q = song["Song"] in st.session_state.playlist_queue
-                if st.button("✅" if in_q else "➕", key=f"pgq_{i}_{song['Song']}",
-                             disabled=in_q, help="Add to queue"):
-                    st.session_state.playlist_queue.append(song["Song"])
-                    st.toast(f"➕ {song['Song']} added!")
-                    st.rerun()
-
-        # Export generated playlist as text
-        st.divider()
-        export_lines = [f"🎵 Auto Playlist — {st.session_state.username}", "=" * 40]
-        for i, s in enumerate(st.session_state.gen_playlist, 1):
-            export_lines.append(f"{i}. {s['Song']} ({s.get('Mood','')} / {s.get('Genre','')}) ~{s.get('est_duration_min',4.0):.1f}min")
-        export_lines.append(f"\nTotal: ~{int(st.session_state.gen_playlist_total)} minutes")
-        export_lines.append("Generated by PLM Devs AI Music Recommender")
-        st.download_button(
-            "⬇️ Export Playlist as .txt",
-            "\n".join(export_lines),
-            file_name=f"{st.session_state.username}_auto_playlist.txt",
-            mime="text/plain",
-        )
-
-# ═══════════════════════════════════════════════════════
-#  NOW PLAYING — sticky bottom bar
-# ═══════════════════════════════════════════════════════
-if st.session_state.get('now_playing_song'):
-    _np_mood  = st.session_state.get('now_playing_mood', 'Relaxed')
-    _np_color = MOOD_ACCENT.get(_np_mood, "#1DB954")
-    render_now_playing_bar(
-        song_name   = st.session_state.now_playing_song,
-        mood        = _np_mood,
-        genre       = st.session_state.get('now_playing_genre', ''),
-        queue_count = len(st.session_state.playlist_queue),
-        mood_color  = _np_color,
-    )
