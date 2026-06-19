@@ -2,6 +2,8 @@ import json
 import os
 import datetime
 
+_BASE = os.path.dirname(os.path.abspath(__file__))
+
 BADGES = {
     "🎵 First Beat":      {"desc": "Get your first recommendation",        "check": lambda s: s["total_sessions"] >= 1},
     "👍 Music Lover":     {"desc": "Like 5 songs",                          "check": lambda s: s["total_likes"] >= 5},
@@ -17,7 +19,7 @@ BADGES = {
 }
 
 def _stats_file(username):
-    return f"stats_{username}.json"
+    return os.path.join(_BASE, f"stats_{username}.json")
 
 def load_stats(username):
     f = _stats_file(username)
@@ -65,7 +67,7 @@ def update_stats(username, mood, genre, feedback):
         stats["xp"] += 2
     elif feedback == "skip":
         stats["total_skips"] += 1
-        stats["xp"] = max(0, stats["xp"] - 2)
+        stats["xp"] = max(0, stats["xp"] - 5)
 
     if mood not in stats["moods_tried"]:
         stats["moods_tried"].append(mood)

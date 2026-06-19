@@ -2,10 +2,9 @@ import json
 import os
 import datetime
 
-SHARED_PLAYLISTS_FILE = "shared_playlists.json"
-FAVOURITES_FILE = "favourites_{username}.json"
-FRIENDS_FILE = "friends_{username}.json"
-LEADERBOARD_FILE = "leaderboard.json"
+_BASE = os.path.dirname(os.path.abspath(__file__))
+SHARED_PLAYLISTS_FILE = os.path.join(_BASE, "shared_playlists.json")
+LEADERBOARD_FILE      = os.path.join(_BASE, "leaderboard.json")
 
 # ─── Shared Playlists ───────────────────────────────────────────────
 
@@ -46,7 +45,7 @@ def like_shared_playlist(playlist_id, username):
 # ─── Favourites ─────────────────────────────────────────────────────
 
 def _fav_file(username):
-    return f"favourites_{username}.json"
+    return os.path.join(_BASE, f"favourites_{username}.json")
 
 def load_favourites(username):
     f = _fav_file(username)
@@ -79,7 +78,7 @@ def export_playlist_text(username, songs, mood):
 # ─── Friend System ──────────────────────────────────────────────────
 
 def _friends_file(username):
-    return f"friends_{username}.json"
+    return os.path.join(_BASE, f"friends_{username}.json")
 
 def load_friends(username):
     f = _friends_file(username)
@@ -175,3 +174,27 @@ def get_user_rank(username):
             return i, user["xp"]
     return None, None
 
+
+# ─── Comments on Shared Playlists ───────────────────────────────────
+
+def add_comment(playlist_id: int, username: str, text: str):
+    """Add a comment to a shared playlist."""
+    playlists = load_shared_playlists()
+    for p in playlists:
+        if p["id"] == playlist_id:
+            if "comments" not in p:
+                p["comments"] = []
+            p["comments"].append({
+                "username": username,
+                "text": text.strip(),
+                "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+            })
+    save_shared_playlists(playlists)
+
+def get_comments(playlist_id: int) -> list:
+    """Return comments list for a playlist."""
+    playlists = load_shared_playlists()
+    for p in playlists:
+        if p["id"] == playlist_id:
+            return p.get("comments", [])
+    return []

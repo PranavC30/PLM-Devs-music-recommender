@@ -1,22 +1,24 @@
 import json
 import os
 import random
-import numpy as np
 
 class QLearningAgent:
     def __init__(self, actions, alpha=0.1, gamma=0.9, epsilon=0.2, username='default_user'):
         self.actions = actions
-        self.alpha = alpha       # Learning rate
-        self.gamma = gamma       # Discount factor
-        self.epsilon = epsilon   # Exploration rate
+        self.alpha = alpha
+        self.gamma = gamma
+        self.epsilon = epsilon
         self.username = username
-        self.filename = f'q_table_{self.username}.json' # File to save/load Q-table
+        # Use same directory as this file so paths are consistent everywhere
+        _base = os.path.dirname(os.path.abspath(__file__))
+        self.filename = os.path.join(_base, f'q_table_{self.username}.json')
         self.q_table = self.load_q_table()
-        
+
     def change_user(self, new_username):
         """Switches the active user and loads their specific Q-table."""
         self.username = new_username
-        self.filename = f'q_table_{self.username}.json'
+        _base = os.path.dirname(os.path.abspath(__file__))
+        self.filename = os.path.join(_base, f'q_table_{self.username}.json')
         self.q_table = self.load_q_table()
 
 

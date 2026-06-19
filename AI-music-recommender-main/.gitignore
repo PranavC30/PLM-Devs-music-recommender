@@ -8,5 +8,15 @@ history_*.json
 stats_*.json
 favourites_*.json
 journal_*.json
+friends_*.json
+ratings_*.json
 users.json
 shared_playlists.json
+leaderboard.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/

@@ -6,7 +6,8 @@ def render_pomodoro():
 
     for key, val in [('pomo_active', False), ('pomo_end_time', 0),
                      ('pomo_duration', 25*60), ('pomo_completed', 0),
-                     ('sleep_active', False), ('sleep_end_time', 0)]:
+                     ('sleep_active', False), ('sleep_end_time', 0),
+                     ('sleep_total_duration', 30*60)]:
         if key not in st.session_state:
             st.session_state[key] = val
 
@@ -66,6 +67,7 @@ def render_pomodoro():
                     if st.button("▶ Start Sleep Timer", use_container_width=True, key="sleep_start"):
                         st.session_state.sleep_active = True
                         st.session_state.sleep_end_time = time.time() + sleep_mins * 60
+                        st.session_state.sleep_total_duration = sleep_mins * 60
                         st.rerun()
                 else:
                     if st.button("⏹ Cancel", use_container_width=True, key="sleep_stop"):
@@ -80,7 +82,10 @@ def render_pomodoro():
                     st.rerun()
                 else:
                     m, s = divmod(remaining, 60)
-                    st.progress(1 - remaining / (sleep_mins * 60))
+                    # Use stored end_time and a fixed total duration derived from it
+                    # to avoid relying on the widget value (which resets between reruns)
+                    total_duration = st.session_state.get('sleep_total_duration', sleep_mins * 60)
+                    st.progress(max(0.0, min(1.0, 1 - remaining / total_duration)))
                     st.markdown(f"<p style='text-align:center;color:#aaa;font-size:1.5rem;'>😴 Stopping in {m:02d}:{s:02d}</p>",
                                 unsafe_allow_html=True)
                     time.sleep(1)

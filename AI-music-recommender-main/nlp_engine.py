@@ -1,10 +1,19 @@
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-import speech_recognition as sr
+
+# SpeechRecognition + PyAudio are optional — voice input gracefully disabled if missing
+try:
+    import speech_recognition as sr
+    _SR_AVAILABLE = True
+except ImportError:
+    _SR_AVAILABLE = False
 
 class NLPEngine:
     def __init__(self):
         self.analyzer = SentimentIntensityAnalyzer()
-        self.recognizer = sr.Recognizer()
+        if _SR_AVAILABLE:
+            self.recognizer = sr.Recognizer()
+        else:
+            self.recognizer = None
 
     def detect_mood_from_text(self, text):
         """
@@ -54,7 +63,10 @@ class NLPEngine:
     def transcribe_audio(self, audio_data):
         """
         Transcribes an audio file-like object into text using Google Speech Recognition.
+        Returns empty string if SpeechRecognition / PyAudio is not available.
         """
+        if not _SR_AVAILABLE or self.recognizer is None:
+            return ""
         try:
             with sr.AudioFile(audio_data) as source:
                 audio = self.recognizer.record(source)
