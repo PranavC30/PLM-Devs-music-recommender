@@ -380,7 +380,7 @@ def render_splash_screen():
     <div class='plm-splash'>
         <span class='plm-splash-logo'>🎵</span>
         <div class='plm-splash-title'>PLM Devs Music AI</div>
-        <div class='plm-splash-sub'>POWERED BY Q-LEARNING</div>
+        <div class='plm-splash-sub'>✦ crafted by Pranav Chakravorty ✦</div>
         <div class='plm-splash-dots'>
             <div class='plm-splash-dot'></div>
             <div class='plm-splash-dot'></div>
