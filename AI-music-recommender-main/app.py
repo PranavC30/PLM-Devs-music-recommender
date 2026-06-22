@@ -29,8 +29,10 @@ from playlist_generator import generate_playlist, get_preset_playlists
 from content_filter import get_similar_songs
 from ui_components import (
     inject_global_css, render_animated_header, render_song_card,
-    render_mood_selector, render_skeleton_cards, show_toast,
-    render_now_playing_bar, render_sidebar, render_onboarding,
+    render_song_card_with_art, render_mood_selector, render_skeleton_cards,
+    show_toast, render_now_playing_bar, render_now_playing_bar_v2,
+    render_sidebar, render_onboarding, render_splash_screen,
+    render_lyrics_search, get_album_art_html,
     MOOD_ACCENT, MOOD_GRADIENTS, MOOD_EMOJI,
 )
 
@@ -95,6 +97,8 @@ _defaults = {
     "gen_playlist": [], "gen_playlist_total": 0.0,
     "onboard_done": False,
     "now_playing_song": None, "now_playing_mood": "Relaxed", "now_playing_genre": "",
+    "now_playing_song_dict": None,
+    "splash_shown": False,
 }
 for _k, _v in _defaults.items():
     if _k not in st.session_state:
@@ -106,6 +110,11 @@ if st.session_state.recommender is None: st.session_state.recommender = Recommen
 if st.session_state.chatbot is None:     st.session_state.chatbot     = MusicChatbot()
 
 apply_theme(st.session_state.get("current_mood", "Relaxed") or "Relaxed")
+
+# ── Splash screen — show once per session ─────────────────────────────
+if not st.session_state.get("splash_shown", False):
+    render_splash_screen()
+    st.session_state.splash_shown = True
 
 # ══════════════════════════════════════════════════════════════════════
 # LOGIN PAGE
@@ -456,7 +465,7 @@ with tab_rec:
             _is_fav   = _song["Song"] in _favs_list
             _fav_icon = "❤️" if _is_fav else "🤍"
 
-            render_song_card(_song, detected_mood)
+            render_song_card_with_art(_song, detected_mood)
             st.markdown(get_yt_embed_html(
                 _song.get("URL", ""), _song["Song"],
                 _song.get("Language", "Hindi"), _song.get("SpotifyURL", "")),
@@ -521,9 +530,10 @@ with tab_rec:
                 # Update now-playing state
                 if st.session_state.current_songs:
                     _np = st.session_state.current_songs[0]
-                    st.session_state.now_playing_song  = _np["Song"]
-                    st.session_state.now_playing_mood  = _np.get("Mood", detected_mood)
-                    st.session_state.now_playing_genre = _np.get("Genre", "")
+                    st.session_state.now_playing_song      = _np["Song"]
+                    st.session_state.now_playing_mood      = _np.get("Mood", detected_mood)
+                    st.session_state.now_playing_genre     = _np.get("Genre", "")
+                    st.session_state.now_playing_song_dict = _np
                 _, _new_badges = update_stats(st.session_state.username,
                                               detected_mood, _action, _feedback)
                 if _new_badges:
@@ -1113,6 +1123,10 @@ with tab_search:
     except Exception:
         _df_all = pd.DataFrame()
 
+    # ── Lyrics / Keyword Search ──────────────────────────────────────
+    render_lyrics_search(_df_all)
+    st.divider()
+
     _sf1,_sf2,_sf3,_sf4 = st.columns([3,1,1,1])
     with _sf1:
         _sq = st.text_input("🔎 Search by song name",
@@ -1263,10 +1277,11 @@ with tab_pgen:
 if st.session_state.get("now_playing_song"):
     _np_mood  = st.session_state.get("now_playing_mood", "Relaxed")
     _np_color = MOOD_ACCENT.get(_np_mood, "#1DB954")
-    render_now_playing_bar(
+    render_now_playing_bar_v2(
         song_name   = st.session_state.now_playing_song,
         mood        = _np_mood,
         genre       = st.session_state.get("now_playing_genre", ""),
         queue_count = len(st.session_state.playlist_queue),
         mood_color  = _np_color,
+        song        = st.session_state.get("now_playing_song_dict"),
     )

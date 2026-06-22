@@ -84,6 +84,114 @@ def inject_global_css(accent="#1DB954", bg=""):
     @media(max-width:480px){{
         .plm-header h1{{font-size:1.4rem;}} .stTabs [data-baseweb="tab"]{{padding:4px 5px;font-size:0.68rem;}}
     }}
+    /* ══ SMOOTH PAGE TRANSITIONS ══ */
+    .stTabs [data-baseweb="tab-panel"] {{
+        animation: fadeSlideIn 0.35s cubic-bezier(.4,0,.2,1);
+    }}
+    @keyframes fadeSlideIn {{
+        from {{ opacity:0; transform:translateY(10px); }}
+        to   {{ opacity:1; transform:translateY(0); }}
+    }}
+    /* ══ LOADING SCREEN ══ */
+    .plm-splash {{
+        position:fixed; top:0; left:0; right:0; bottom:0; z-index:999999;
+        background:linear-gradient(135deg,#060610,#0a120a);
+        display:flex; flex-direction:column;
+        align-items:center; justify-content:center;
+        animation: splashFade 0.6s ease 2.5s forwards;
+    }}
+    @keyframes splashFade {{
+        from {{ opacity:1; pointer-events:all; }}
+        to   {{ opacity:0; pointer-events:none; visibility:hidden; }}
+    }}
+    .plm-splash-logo {{
+        font-size:5rem; display:block;
+        animation: logoBounce 0.7s cubic-bezier(.4,2,.6,1) 0.2s both;
+    }}
+    @keyframes logoBounce {{
+        from {{ transform:scale(0.3) rotate(-15deg); opacity:0; }}
+        to   {{ transform:scale(1) rotate(0deg); opacity:1; }}
+    }}
+    .plm-splash-title {{
+        font-size:2rem; font-weight:800; margin:16px 0 6px 0;
+        background:linear-gradient(90deg,{accent},#fff,{accent});
+        background-size:200% auto;
+        -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+        animation: shimmer 2s linear infinite, fadeUp 0.5s ease 0.5s both;
+    }}
+    .plm-splash-sub {{
+        font-size:0.9rem; opacity:0.55; letter-spacing:1px;
+        animation: fadeUp 0.5s ease 0.8s both;
+    }}
+    .plm-splash-dots {{
+        display:flex; gap:8px; margin-top:32px;
+        animation: fadeUp 0.5s ease 1s both;
+    }}
+    .plm-splash-dot {{
+        width:8px; height:8px; border-radius:50%; background:{accent};
+        animation: dotPulse 1s ease-in-out infinite;
+    }}
+    .plm-splash-dot:nth-child(2) {{ animation-delay:0.15s; }}
+    .plm-splash-dot:nth-child(3) {{ animation-delay:0.3s; }}
+    @keyframes dotPulse {{
+        0%,100% {{ transform:scale(1); opacity:0.4; }}
+        50%      {{ transform:scale(1.5); opacity:1; }}
+    }}
+    @keyframes fadeUp {{
+        from {{ opacity:0; transform:translateY(14px); }}
+        to   {{ opacity:1; transform:translateY(0); }}
+    }}
+    /* ══ ALBUM ART PLACEHOLDER ══ */
+    .album-art {{
+        width:68px; height:68px; border-radius:10px; flex-shrink:0;
+        display:flex; align-items:center; justify-content:center;
+        font-size:1.6rem; position:relative; overflow:hidden;
+        box-shadow:0 4px 16px rgba(0,0,0,0.5);
+    }}
+    .album-art::before {{
+        content:'';
+        position:absolute; inset:0;
+        background:linear-gradient(135deg,rgba(255,255,255,0.18) 0%,transparent 60%);
+        z-index:1;
+    }}
+    .album-vinyl {{
+        position:absolute; width:28px; height:28px; border-radius:50%;
+        border:3px solid rgba(0,0,0,0.25); right:-6px; bottom:-6px;
+        opacity:0.7; z-index:2;
+    }}
+    .album-vinyl::after {{
+        content:''; position:absolute; inset:6px; border-radius:50%;
+        background:rgba(0,0,0,0.4);
+    }}
+    /* ══ ENHANCED VISUALIZER BARS ══ */
+    .viz-bar-wrap {{
+        display:flex; align-items:flex-end; gap:3px; height:28px;
+    }}
+    .vbar {{
+        width:4px; border-radius:3px; background:{accent};
+        box-shadow:0 0 6px {accent}88;
+        animation:vbarAnim 0.7s ease-in-out infinite alternate;
+    }}
+    .vbar:nth-child(1){{animation-duration:0.6s;}}
+    .vbar:nth-child(2){{animation-duration:0.8s;animation-delay:0.1s;}}
+    .vbar:nth-child(3){{animation-duration:0.5s;animation-delay:0.2s;}}
+    .vbar:nth-child(4){{animation-duration:0.9s;animation-delay:0.05s;}}
+    .vbar:nth-child(5){{animation-duration:0.7s;animation-delay:0.15s;}}
+    .vbar:nth-child(6){{animation-duration:0.6s;animation-delay:0.25s;}}
+    @keyframes vbarAnim {{
+        from {{ height:3px; }}
+        to   {{ height:24px; }}
+    }}
+    /* ══ LYRICS SEARCH ══ */
+    .lyrics-result {{
+        background:rgba(255,255,255,0.05);
+        border:1px solid rgba(255,255,255,0.1);
+        border-radius:14px; padding:14px 18px; margin-bottom:10px;
+        border-left:4px solid {accent};
+        transition:all 0.2s;
+    }}
+    .lyrics-result:hover {{ transform:translateX(4px); background:rgba(255,255,255,0.08); }}
+    .lyrics-match {{ color:{accent}; font-weight:700; }}
     </style>""", unsafe_allow_html=True)
 
 def render_animated_header(mood="Relaxed"):
@@ -261,3 +369,198 @@ def render_onboarding():
                     st.session_state.onboard_done    = True
                     st.session_state.onboard_step    = 1
                     st.rerun()
+
+
+# ─────────────────────────────────────────────────────────────────────
+# LOADING / SPLASH SCREEN
+# ─────────────────────────────────────────────────────────────────────
+def render_splash_screen():
+    """Show an animated splash screen that auto-fades after ~2.5s."""
+    st.markdown("""
+    <div class='plm-splash'>
+        <span class='plm-splash-logo'>🎵</span>
+        <div class='plm-splash-title'>PLM Devs Music AI</div>
+        <div class='plm-splash-sub'>POWERED BY Q-LEARNING</div>
+        <div class='plm-splash-dots'>
+            <div class='plm-splash-dot'></div>
+            <div class='plm-splash-dot'></div>
+            <div class='plm-splash-dot'></div>
+        </div>
+    </div>""", unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# ALBUM ART PLACEHOLDER (mood + genre based gradient thumbnail)
+# ─────────────────────────────────────────────────────────────────────
+_GENRE_EMOJI = {
+    "Pop": "🎤", "Rock": "🎸", "Lo-fi": "🎹",
+    "Classical": "🎻", "Instrumental": "🎺",
+}
+_MOOD_ART_COLORS = {
+    "Happy":   ("linear-gradient(135deg,#FFD700,#FF8C00)", "#FFD70033"),
+    "Sad":     ("linear-gradient(135deg,#6495ED,#3a5fc8)", "#6495ED33"),
+    "Focus":   ("linear-gradient(135deg,#FF8C00,#cc4400)", "#FF8C0033"),
+    "Relaxed": ("linear-gradient(135deg,#1DB954,#0a8a3a)", "#1DB95433"),
+}
+
+def get_album_art_html(song: dict, size: int = 68) -> str:
+    mood  = song.get("Mood", "Relaxed")
+    genre = song.get("Genre", "Pop")
+    emoji = _GENRE_EMOJI.get(genre, "🎵")
+    gradient, shadow = _MOOD_ART_COLORS.get(mood, _MOOD_ART_COLORS["Relaxed"])
+    vinyl_color = MOOD_ACCENT.get(mood, "#1DB954")
+    return (
+        f"<div class='album-art' style='background:{gradient};"
+        f"box-shadow:0 4px 20px {shadow};width:{size}px;height:{size}px;'>"
+        f"<span style='position:relative;z-index:2;'>{emoji}</span>"
+        f"<div class='album-vinyl' style='background:{vinyl_color}33;'></div>"
+        f"</div>"
+    )
+
+
+def render_song_card_with_art(song: dict, mood: str = "Relaxed"):
+    """Glassmorphism song card with album art thumbnail on the left."""
+    accent    = MOOD_ACCENT.get(song.get("Mood", mood), "#1DB954")
+    sp_url    = f"https://open.spotify.com/search/{song['Song'].replace(' ','%20')}"
+    yt_url    = f"https://www.youtube.com/results?search_query={song['Song'].replace(' ','+')} "
+    art_html  = get_album_art_html(song)
+    energy    = str(song.get("Energy", ""))
+    e_color   = {"High":"#ff8888","Medium":"#ffcc66","Low":"#1db954"}.get(energy, "#aaa")
+    e_badge   = (f"<span style='background:{e_color}22;color:{e_color};"
+                 f"border:1px solid {e_color}44;border-radius:20px;"
+                 f"padding:2px 10px;font-size:0.75rem;'>⚡ {energy}</span>"
+                 if energy else "")
+    st.markdown(f"""
+    <div class='song-card' style='border-left-color:{accent};'>
+        <div style='display:flex;align-items:flex-start;gap:16px;'>
+            {art_html}
+            <div style='flex:1;min-width:0;'>
+                <h2 style='margin:0 0 4px 0;'>{song['Song']}</h2>
+                <div class='meta'>
+                    🎭 {song.get('Mood','')} &nbsp;·&nbsp;
+                    🎸 {song.get('Genre','')} &nbsp;·&nbsp;
+                    🌐 {song.get('Language','')} &nbsp; {e_badge}
+                </div>
+                <a class='pill-btn' href='{sp_url}' target='_blank'
+                   style='background:#1DB954;color:#000;'>🎧 Spotify</a>
+                <a class='pill-btn' href='{yt_url}' target='_blank'
+                   style='background:#FF0000;color:#fff;'>▶ YouTube</a>
+            </div>
+        </div>
+    </div>""", unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# ENHANCED NOW PLAYING BAR (with better visualizer)
+# ─────────────────────────────────────────────────────────────────────
+def render_now_playing_bar_v2(song_name: str, mood: str, genre: str,
+                               queue_count: int = 0, mood_color: str = "#1DB954",
+                               song: dict = None):
+    """Enhanced now playing bar with album art + better visualizer."""
+    sp_url  = f"https://open.spotify.com/search/{song_name.replace(' ','%20')}"
+    yt_url  = f"https://www.youtube.com/results?search_query={song_name.replace(' ','+')} "
+    art_html = get_album_art_html(song or {"Mood": mood, "Genre": genre}, size=44)
+    qbadge  = (f"<span style='background:rgba(255,255,255,0.1);border-radius:20px;"
+               f"padding:2px 10px;font-size:0.76rem;'>🗂️ {queue_count}</span>"
+               if queue_count > 0 else "")
+    # 6-bar visualizer with varying heights
+    bars = ""
+    for h in [8, 18, 12, 24, 10, 20]:
+        bars += (f"<div class='vbar' style='height:{h}px;'></div>")
+
+    st.markdown(f"""
+    <div class='now-playing-bar'>
+        {art_html}
+        <div class='viz-bar-wrap'>{bars}</div>
+        <div style='flex:1;min-width:0;margin-left:12px;'>
+            <div style='font-weight:700;font-size:0.9rem;white-space:nowrap;
+                overflow:hidden;text-overflow:ellipsis;'>
+                🎵 {song_name}
+            </div>
+            <div style='font-size:0.76rem;opacity:0.6;margin-top:1px;'>
+                🎭 {mood} &nbsp;·&nbsp; 🎸 {genre} &nbsp; {qbadge}
+            </div>
+        </div>
+        <div style='display:flex;gap:8px;flex-shrink:0;'>
+            <a href='{sp_url}' target='_blank'
+               style='background:#1DB954;color:#000;border-radius:20px;
+               padding:5px 14px;font-size:0.8rem;font-weight:700;text-decoration:none;'>
+               🎧 Spotify</a>
+            <a href='{yt_url}' target='_blank'
+               style='background:#FF0000;color:#fff;border-radius:20px;
+               padding:5px 14px;font-size:0.8rem;font-weight:700;text-decoration:none;'>
+               ▶ YouTube</a>
+        </div>
+    </div>""", unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# LYRICS / KEYWORD SEARCH
+# ─────────────────────────────────────────────────────────────────────
+def render_lyrics_search(df):
+    """
+    Search songs by partial lyrics keywords or song fragment.
+    df: the songs DataFrame (Song, Mood, Genre, Language, Energy, URL, SpotifyURL)
+    """
+    st.subheader("🎼 Lyrics / Keyword Search")
+    st.caption("Koi bhi lyrics fragment, song ka hissa, ya keyword type karo — matching songs milenge!")
+
+    query = st.text_input(
+        "Lyrics ya keyword",
+        placeholder="e.g. 'tum hi ho', 'baby', 'zindagi', 'love you'...",
+        key="lyrics_search_q",
+        label_visibility="collapsed"
+    )
+
+    if not query.strip():
+        st.markdown("<p style='opacity:0.4;font-size:0.88rem;'>⬆️ Kuch type karo...</p>",
+                    unsafe_allow_html=True)
+        return
+
+    q = query.strip().lower()
+    # Match against song name (word-level partial match)
+    results = df[df["Song"].str.lower().str.contains(q, na=False)]
+
+    # If no match on exact, try word-by-word
+    if results.empty:
+        words = q.split()
+        for word in words:
+            if len(word) > 2:
+                match = df[df["Song"].str.lower().str.contains(word, na=False)]
+                results = match if results.empty else results
+                break
+
+    if results.empty:
+        st.info(f"Koi match nahi mila '{query}' ke liye. Different keywords try karo!")
+        return
+
+    accent = "#1DB954"
+    st.caption(f"**{len(results)}** song(s) mila:")
+    for _, row in results.head(10).iterrows():
+        sp  = f"https://open.spotify.com/search/{str(row['Song']).replace(' ','%20')}"
+        yt  = f"https://www.youtube.com/results?search_query={str(row['Song']).replace(' ','+')}"
+        mood_color = MOOD_ACCENT.get(row.get("Mood", ""), "#1DB954")
+        # Highlight matching part in song name
+        song_display = str(row["Song"])
+        song_lower   = song_display.lower()
+        if q in song_lower:
+            idx  = song_lower.index(q)
+            song_display = (
+                song_display[:idx]
+                + f"<span class='lyrics-match'>{song_display[idx:idx+len(q)]}</span>"
+                + song_display[idx+len(q):]
+            )
+        st.markdown(f"""
+        <div class='lyrics-result' style='border-left-color:{mood_color};'>
+            <b style='font-size:1rem;'>🎵 {song_display}</b><br>
+            <span style='opacity:0.65;font-size:0.82rem;'>
+                🎭 {row.get('Mood','')} &nbsp;·&nbsp;
+                🎸 {row.get('Genre','')} &nbsp;·&nbsp;
+                🌐 {row.get('Language','')} &nbsp;·&nbsp;
+                ⚡ {row.get('Energy','')}
+            </span><br>
+            <a href='{sp}' target='_blank'
+               style='color:#1DB954;font-size:0.82rem;margin-right:12px;'>🎧 Spotify</a>
+            <a href='{yt}' target='_blank'
+               style='color:#ff4444;font-size:0.82rem;'>▶ YouTube</a>
+        </div>""", unsafe_allow_html=True)
