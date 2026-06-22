@@ -1,113 +1,64 @@
 import datetime
 import json
 import pandas as pd
+from collections import Counter
 from auth import load_history
 from gamification import load_stats
 
-MOOD_EMOJI = {"Happy": "😄", "Sad": "😢", "Focus": "🎯", "Relaxed": "😌"}
-MOOD_COLOR = {"Happy": "#FFD700", "Sad": "#6495ED", "Focus": "#FF8C00", "Relaxed": "#1DB954"}
-
 def get_week_range():
     today = datetime.date.today()
-    start = today - datetime.timedelta(days=today.weekday() + 7)  # last Monday
-    end   = start + datetime.timedelta(days=6)
-    return start, end
+    start = today - datetime.timedelta(days=today.weekday() + 7)
+    return start, start + datetime.timedelta(days=6)
 
 def generate_weekly_report(username: str) -> dict:
-    """Returns a dict with all weekly stats, or None if no data."""
     history = load_history(username)
-    if not history:
-        return None
-
+    if not history: return None
     start, end = get_week_range()
     df = pd.DataFrame(history)
-    df['date'] = pd.to_datetime(df['timestamp']).dt.date
-
-    week_df = df[(df['date'] >= start) & (df['date'] <= end)]
-
+    df["date"] = pd.to_datetime(df["timestamp"]).dt.date
+    week_df = df[(df["date"] >= start) & (df["date"] <= end)]
     if week_df.empty:
-        # fallback: last 7 days
-        cutoff = datetime.date.today() - datetime.timedelta(days=7)
-        week_df = df[df['date'] >= cutoff]
-
-    if week_df.empty:
-        return None
-
-    total_sessions = len(week_df)
-    likes   = len(week_df[week_df['feedback'] == 'like'])
-    skips   = len(week_df[week_df['feedback'] == 'skip'])
-    listens = len(week_df[week_df['feedback'] == 'listen'])
-
-    top_mood  = week_df['mood'].mode()[0]  if not week_df['mood'].empty  else "-"
-    top_genre = week_df['genre'].mode()[0] if not week_df['genre'].empty else "-"
-
-    mood_counts  = week_df['mood'].value_counts().to_dict()
-    genre_counts = week_df['genre'].value_counts().to_dict()
-
-    # Daily activity
-    daily = week_df.groupby('date').size().reset_index(name='sessions')
-
-    # All songs listened — handle both list and JSON string formats
+        week_df = df[df["date"] >= datetime.date.today() - datetime.timedelta(days=7)]
+    if week_df.empty: return None
+    likes   = len(week_df[week_df["feedback"] == "like"])
+    skips   = len(week_df[week_df["feedback"] == "skip"])
+    listens = len(week_df[week_df["feedback"] == "listen"])
+    top_mood  = week_df["mood"].mode()[0]  if not week_df["mood"].empty  else "-"
+    top_genre = week_df["genre"].mode()[0] if not week_df["genre"].empty else "-"
     all_songs = []
-    for songs_val in week_df['songs']:
-        if isinstance(songs_val, list):
-            all_songs.extend(songs_val)
-        elif isinstance(songs_val, str):
+    for sv in week_df["songs"]:
+        if isinstance(sv, list): all_songs.extend(sv)
+        elif isinstance(sv, str):
             try:
-                parsed = json.loads(songs_val)
-                if isinstance(parsed, list):
-                    all_songs.extend(parsed)
+                p = json.loads(sv)
+                if isinstance(p, list): all_songs.extend(p)
             except Exception:
-                if songs_val.strip():
-                    all_songs.append(songs_val.strip())
-    from collections import Counter
-    top_songs = Counter(all_songs).most_common(5)
-
+                if sv.strip(): all_songs.append(sv.strip())
     stats = load_stats(username)
-    streak = stats.get('streak', 0)
-    xp_gained = likes * 10 + listens * 2
-
-    # Insight message
-    if top_mood == "Happy":
-        insight = "You had a great week! Your energy was mostly positive 🌟"
-    elif top_mood == "Sad":
-        insight = "Tough week? Music was there for you 💙 Things will get better!"
-    elif top_mood == "Focus":
-        insight = "Productive week! You were in grind mode 🚀"
-    else:
-        insight = "Chill week! You kept it relaxed and peaceful 🍃"
-
+    insight_map = {"Happy":"You had a great week! Your energy was mostly positive 🌟",
+                   "Sad":"Tough week? Music was there for you 💙 Things will get better!",
+                   "Focus":"Productive week! You were in grind mode 🚀",
+                   "Relaxed":"Chill week! You kept it relaxed and peaceful 🍃"}
     return {
         "period": f"{start.strftime('%d %b')} – {end.strftime('%d %b %Y')}",
-        "total_sessions": total_sessions,
-        "likes": likes, "skips": skips, "listens": listens,
+        "total_sessions": len(week_df), "likes": likes, "skips": skips, "listens": listens,
         "top_mood": top_mood, "top_genre": top_genre,
-        "mood_counts": mood_counts, "genre_counts": genre_counts,
-        "daily_activity": daily,
-        "top_songs": top_songs,
-        "streak": streak, "xp_gained": xp_gained,
-        "insight": insight,
+        "mood_counts": week_df["mood"].value_counts().to_dict(),
+        "genre_counts": week_df["genre"].value_counts().to_dict(),
+        "daily_activity": week_df.groupby("date").size().reset_index(name="sessions"),
+        "top_songs": Counter(all_songs).most_common(5),
+        "streak": stats.get("streak", 0), "xp_gained": likes * 10 + listens * 2,
+        "insight": insight_map.get(top_mood, "Keep listening and growing! 🎵"),
     }
 
 def export_report_text(username: str, report: dict) -> str:
-    lines = [
-        f"🎵 Weekly Music Report — {username}",
-        f"Period: {report['period']}",
-        "=" * 40,
-        f"Total Sessions : {report['total_sessions']}",
-        f"👍 Likes        : {report['likes']}",
-        f"🎧 Listens      : {report['listens']}",
-        f"⏭️  Skips        : {report['skips']}",
-        f"Top Mood       : {report['top_mood']}",
-        f"Top Genre      : {report['top_genre']}",
-        f"🔥 Streak       : {report['streak']} days",
-        f"⚡ XP Gained    : {report['xp_gained']}",
-        "",
-        f"💡 Insight: {report['insight']}",
-        "",
-        "Top Songs This Week:",
-    ]
-    for i, (song, count) in enumerate(report['top_songs'], 1):
+    lines = [f"🎵 Weekly Music Report — {username}", f"Period: {report['period']}", "="*40,
+             f"Total Sessions : {report['total_sessions']}", f"👍 Likes: {report['likes']}",
+             f"🎧 Listens: {report['listens']}", f"⏭️ Skips: {report['skips']}",
+             f"Top Mood: {report['top_mood']}", f"Top Genre: {report['top_genre']}",
+             f"🔥 Streak: {report['streak']} days", f"⚡ XP Gained: {report['xp_gained']}",
+             "", f"💡 Insight: {report['insight']}", "", "Top Songs This Week:"]
+    for i, (song, count) in enumerate(report["top_songs"], 1):
         lines.append(f"  {i}. {song} ({count}x)")
     lines.append("\nGenerated by PLM Devs AI Music Recommender")
     return "\n".join(lines)

@@ -1,6 +1,10 @@
 __pycache__/
+*.pyc
+*.pyo
 temp_audio.wav
 .env
+.venv/
+venv/
 
 # Runtime user data — auto-generated, don't commit
 q_table_*.json
@@ -8,5 +12,8 @@ history_*.json
 stats_*.json
 favourites_*.json
 journal_*.json
+friends_*.json
+ratings_*.json
 users.json
 shared_playlists.json
+leaderboard.json

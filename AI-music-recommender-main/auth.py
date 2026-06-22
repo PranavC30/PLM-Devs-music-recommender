@@ -3,8 +3,8 @@ import os
 import hashlib
 import datetime
 
-USERS_FILE = "users.json"
-HISTORY_FILE = "history_{username}.json"
+_BASE = os.path.dirname(os.path.abspath(__file__))
+USERS_FILE = os.path.join(_BASE, "users.json")
 
 def _hash(password):
     return hashlib.sha256(password.encode()).hexdigest()
@@ -35,9 +35,8 @@ def login_user(username, password):
         return False, "Wrong password."
     return True, "Login successful!"
 
-# ---- Listening History ----
 def get_history_file(username):
-    return f"history_{username}.json"
+    return os.path.join(_BASE, f"history_{username}.json")
 
 def load_history(username):
     f = get_history_file(username)
@@ -50,9 +49,7 @@ def save_history_entry(username, songs, mood, genre, feedback):
     history = load_history(username)
     entry = {
         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "mood": mood,
-        "genre": genre,
-        "feedback": feedback,
+        "mood": mood, "genre": genre, "feedback": feedback,
         "songs": [s['Song'] for s in songs]
     }
     history.append(entry)
@@ -66,17 +63,18 @@ def delete_user(username):
         save_users(users)
     for f in [
         get_history_file(username),
-        f"q_table_{username}.json",
-        f"stats_{username}.json",
-        f"favourites_{username}.json",
-        f"journal_{username}.json",
+        os.path.join(_BASE, f"q_table_{username}.json"),
+        os.path.join(_BASE, f"stats_{username}.json"),
+        os.path.join(_BASE, f"favourites_{username}.json"),
+        os.path.join(_BASE, f"journal_{username}.json"),
+        os.path.join(_BASE, f"ratings_{username}.json"),
+        os.path.join(_BASE, f"friends_{username}.json"),
     ]:
         if os.path.exists(f):
             os.remove(f)
 
-# ---- Mood Journal ----
 def get_journal_file(username):
-    return f"journal_{username}.json"
+    return os.path.join(_BASE, f"journal_{username}.json")
 
 def load_journal(username):
     f = get_journal_file(username)
@@ -90,8 +88,7 @@ def save_journal_entry(username, mood, note):
     journal.append({
         "date": datetime.datetime.now().strftime("%Y-%m-%d"),
         "time": datetime.datetime.now().strftime("%H:%M"),
-        "mood": mood,
-        "note": note
+        "mood": mood, "note": note
     })
     with open(get_journal_file(username), 'w') as f:
         json.dump(journal, f)
