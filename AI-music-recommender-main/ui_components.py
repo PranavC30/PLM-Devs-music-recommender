@@ -342,10 +342,12 @@ def get_album_art_html(song: dict, size: int = 68) -> str:
     emoji    = _GENRE_EMOJI.get(genre, "🎵")
     gradient, shadow = _MOOD_ART_COLORS.get(mood, _MOOD_ART_COLORS["Relaxed"])
     return (
+    vinyl_color = MOOD_ACCENT.get(mood, "#1DB954")
+    return (
         f"<div class='album-art' style='background:{gradient};"
         f"box-shadow:0 4px 20px {shadow};width:{size}px;height:{size}px;'>"
         f"<span style='position:relative;z-index:2;'>{emoji}</span>"
-        f"<div class='album-vinyl' style='background:{MOOD_ACCENT.get(mood,\"#1DB954\")}33;'></div>"
+        f"<div class='album-vinyl' style='background:{vinyl_color}33;'></div>"
         f"</div>"
     )
 
