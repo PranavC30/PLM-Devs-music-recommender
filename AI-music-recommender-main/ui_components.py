@@ -84,6 +84,158 @@ def inject_global_css(accent="#1DB954", bg=""):
     @media(max-width:480px){{
         .plm-header h1{{font-size:1.4rem;}} .stTabs [data-baseweb="tab"]{{padding:4px 5px;font-size:0.68rem;}}
     }}
+
+    /* ══ TASK 1: BETTER COLOUR PALETTE PER MOOD ══ */
+    /* Richer background gradients with radial glow overlay */
+    .mood-bg-happy  {{ background: radial-gradient(ellipse at 20% 50%, #3a2a00 0%, #1a1a0a 40%, #0d1a0d 100%) !important; }}
+    .mood-bg-sad    {{ background: radial-gradient(ellipse at 80% 20%, #0a0a2e 0%, #0d0d1a 40%, #060612 100%) !important; }}
+    .mood-bg-focus  {{ background: radial-gradient(ellipse at 50% 80%, #2a1000 0%, #1a0d00 40%, #0d0800 100%) !important; }}
+    .mood-bg-relaxed{{ background: radial-gradient(ellipse at 30% 30%, #002a12 0%, #001a0d 40%, #000d08 100%) !important; }}
+    /* Mood-specific glow on interactive elements */
+    .mood-happy  .stButton>button[kind="primary"] {{ box-shadow: 0 4px 20px #FFD70066 !important; }}
+    .mood-sad    .stButton>button[kind="primary"] {{ box-shadow: 0 4px 20px #6495ED66 !important; }}
+    .mood-focus  .stButton>button[kind="primary"] {{ box-shadow: 0 4px 20px #FF8C0066 !important; }}
+    .mood-relaxed .stButton>button[kind="primary"]{{ box-shadow: 0 4px 20px #1DB95466 !important; }}
+    /* Particle glow dots in background */
+    .stApp::before {{
+        content: '';
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        pointer-events: none; z-index: 0;
+        background:
+            radial-gradient(circle at 15% 25%, {accent}18 0%, transparent 25%),
+            radial-gradient(circle at 85% 75%, {accent}12 0%, transparent 20%),
+            radial-gradient(circle at 50% 10%, {accent}08 0%, transparent 30%);
+        animation: glowShift 8s ease-in-out infinite alternate;
+    }}
+    @keyframes glowShift {{
+        from {{ opacity: 0.6; transform: scale(1); }}
+        to   {{ opacity: 1;   transform: scale(1.05); }}
+    }}
+
+    /* ══ TASK 2: ENHANCED SONG CARD HOVER EFFECT ══ */
+    .song-card {{
+        transition: transform 0.3s cubic-bezier(.4,2,.3,1),
+                    box-shadow 0.3s ease,
+                    border-color 0.3s ease !important;
+    }}
+    .song-card:hover {{
+        transform: translateY(-8px) scale(1.015) !important;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.7),
+                    0 0 40px {accent}33,
+                    0 0 80px {accent}11 !important;
+        border-left-color: {accent} !important;
+    }}
+    .song-card:hover h2 {{
+        background: linear-gradient(90deg, {accent}, #ffffff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }}
+    .song-card:active {{ transform: translateY(-4px) scale(1.008) !important; }}
+
+    /* ══ TASK 5: MOOD RING / BADGE PULSE ANIMATION ══ */
+    .mood-ring {{
+        display: inline-flex; align-items: center; gap: 8px;
+        background: {accent}18;
+        border: 1.5px solid {accent};
+        border-radius: 30px;
+        padding: 8px 22px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        position: relative;
+        animation: moodRingPulse 2.5s ease-in-out infinite;
+    }}
+    .mood-ring::before, .mood-ring::after {{
+        content: '';
+        position: absolute; inset: -4px;
+        border-radius: 34px;
+        border: 1.5px solid {accent};
+        animation: moodRingRipple 2.5s ease-out infinite;
+        opacity: 0;
+    }}
+    .mood-ring::after {{ animation-delay: 1.25s; }}
+    @keyframes moodRingPulse {{
+        0%,100% {{ box-shadow: 0 0 10px {accent}44; }}
+        50%      {{ box-shadow: 0 0 25px {accent}88, 0 0 50px {accent}33; }}
+    }}
+    @keyframes moodRingRipple {{
+        0%   {{ transform: scale(1);    opacity: 0.6; }}
+        100% {{ transform: scale(1.35); opacity: 0; }}
+    }}
+    .mood-ring-dot {{
+        width: 9px; height: 9px; border-radius: 50%;
+        background: {accent};
+        animation: dotBlink 1.5s ease-in-out infinite;
+        box-shadow: 0 0 8px {accent};
+    }}
+    @keyframes dotBlink {{
+        0%,100% {{ opacity: 1; transform: scale(1); }}
+        50%      {{ opacity: 0.4; transform: scale(0.7); }}
+    }}
+
+    /* ══ TASK 6: SONG CARD FLIP ANIMATION ══ */
+    .flip-container {{
+        perspective: 1000px;
+        margin-bottom: 22px;
+    }}
+    .flip-card {{
+        position: relative;
+        transform-style: preserve-3d;
+        animation: cardFlipReveal 0.7s cubic-bezier(.4,2,.3,1) both;
+    }}
+    @keyframes cardFlipReveal {{
+        0%   {{ transform: rotateY(-90deg) translateY(20px); opacity: 0; }}
+        60%  {{ transform: rotateY(8deg)  translateY(-4px);  opacity: 1; }}
+        100% {{ transform: rotateY(0deg)  translateY(0);     opacity: 1; }}
+    }}
+    .flip-card:nth-child(1) {{ animation-delay: 0.0s; }}
+    .flip-card:nth-child(2) {{ animation-delay: 0.12s; }}
+    .flip-card:nth-child(3) {{ animation-delay: 0.24s; }}
+
+    /* ══ TASK 3: ANIMATED COUNTER ══ */
+    .animated-counter {{
+        display: inline-block;
+        font-weight: 800;
+        font-size: 2.2rem;
+        color: {accent};
+        animation: counterPop 0.5s cubic-bezier(.4,2,.3,1) both;
+    }}
+    @keyframes counterPop {{
+        0%   {{ transform: scale(0.5); opacity: 0; }}
+        70%  {{ transform: scale(1.15); }}
+        100% {{ transform: scale(1);   opacity: 1; }}
+    }}
+
+    /* ══ TASK 4: PROFILE AVATAR ══ */
+    .profile-avatar-wrap {{
+        display: flex; flex-direction: column; align-items: center;
+        margin-bottom: 20px;
+    }}
+    .profile-avatar-ring {{
+        width: 96px; height: 96px; border-radius: 50%;
+        padding: 3px;
+        background: conic-gradient(
+            {accent} 0deg,
+            {accent}88 120deg,
+            transparent 120deg,
+            transparent 180deg,
+            {accent}88 180deg,
+            {accent} 360deg
+        );
+        animation: avatarRingSpin 4s linear infinite;
+        margin-bottom: 12px;
+    }}
+    @keyframes avatarRingSpin {{
+        to {{ transform: rotate(360deg); }}
+    }}
+    .profile-avatar-inner {{
+        width: 90px; height: 90px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 2.2rem; font-weight: 800;
+        letter-spacing: -1px;
+        background: #0a0a12;
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+    }}
+    </style>""", unsafe_allow_html=True)
     /* ══ SMOOTH PAGE TRANSITIONS ══ */
     .stTabs [data-baseweb="tab-panel"] {{
         animation: fadeSlideIn 0.35s cubic-bezier(.4,0,.2,1);
@@ -564,3 +716,144 @@ def render_lyrics_search(df):
             <a href='{yt}' target='_blank'
                style='color:#ff4444;font-size:0.82rem;'>▶ YouTube</a>
         </div>""", unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# TASK 3: ANIMATED COUNTER (JS count-up)
+# ─────────────────────────────────────────────────────────────────────
+def render_animated_counter(value: int, label: str, accent: str = "#1DB954"):
+    """Renders a JS count-up animated number with a label below it."""
+    uid = f"ctr_{label.replace(' ','_').lower()}"
+    st.markdown(f"""
+    <div style='text-align:center;padding:8px 12px;'>
+        <div id='{uid}' class='animated-counter' style='color:{accent};'>0</div>
+        <div style='font-size:0.78rem;opacity:0.55;margin-top:4px;'>{label}</div>
+    </div>
+    <script>
+    (function() {{
+        var el = document.getElementById('{uid}');
+        if (!el) return;
+        var target = {value};
+        var duration = 900;
+        var start = null;
+        function easeOut(t) {{ return 1 - Math.pow(1-t, 3); }}
+        function step(ts) {{
+            if (!start) start = ts;
+            var progress = Math.min((ts - start) / duration, 1);
+            el.textContent = Math.round(easeOut(progress) * target);
+            if (progress < 1) requestAnimationFrame(step);
+            else el.textContent = target;
+        }}
+        requestAnimationFrame(step);
+    }})();
+    </script>
+    """, unsafe_allow_html=True)
+
+
+def render_stats_row(sessions: int, likes: int, skips: int, streak: int,
+                     accent: str = "#1DB954"):
+    """4-column animated stats row for the Profile page."""
+    cols = st.columns(4)
+    stats = [
+        (sessions, "🎵 Sessions"),
+        (likes,    "👍 Likes"),
+        (skips,    "⏭️ Skips"),
+        (streak,   "🔥 Streak days"),
+    ]
+    for col, (val, lbl) in zip(cols, stats):
+        with col:
+            render_animated_counter(val, lbl, accent)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# TASK 4: PROFILE AVATAR (spinning gradient ring + initials/emoji)
+# ─────────────────────────────────────────────────────────────────────
+_AVATAR_PALETTES = [
+    ("#FFD700", "#FF8C00"),  # gold
+    ("#1DB954", "#0a8a3a"),  # green
+    ("#6495ED", "#3a5fc8"),  # blue
+    ("#FF6B9D", "#c0245a"),  # pink
+    ("#FF8C00", "#cc4400"),  # orange
+    ("#A855F7", "#7c3aed"),  # purple
+]
+
+def render_profile_avatar(username: str, mood: str = "Relaxed", xp: int = 0):
+    """
+    Renders a large animated avatar with a spinning gradient ring.
+    Avatar shows first 2 initials + a mood emoji.
+    """
+    initials = (username[:2].upper() if username else "??")
+    mood_emoji = MOOD_EMOJI.get(mood, "🎵")
+    accent = MOOD_ACCENT.get(mood, "#1DB954")
+
+    # Pick palette based on username hash
+    palette_idx = sum(ord(c) for c in username) % len(_AVATAR_PALETTES)
+    c1, c2 = _AVATAR_PALETTES[palette_idx]
+
+    # Level badge color
+    level_color = accent
+
+    st.markdown(f"""
+    <div class='profile-avatar-wrap'>
+        <div class='profile-avatar-ring'
+             style='background: conic-gradient({c1} 0deg, {c2} 120deg,
+                    transparent 120deg, transparent 180deg,
+                    {c2} 180deg, {c1} 360deg);'>
+            <div class='profile-avatar-inner'
+                 style='background: linear-gradient(135deg, #0a0a18, #12121f);'>
+                <span style='background: linear-gradient(135deg,{c1},{c2});
+                    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+                    font-size:2rem;font-weight:800;'>
+                    {initials}
+                </span>
+            </div>
+        </div>
+        <div style='font-size:2rem;margin:-14px 0 6px 0;
+                    filter:drop-shadow(0 0 8px {accent});'>
+            {mood_emoji}
+        </div>
+        <div style='font-size:1.2rem;font-weight:800;letter-spacing:0.5px;'>
+            {username}
+        </div>
+        <div style='font-size:0.8rem;opacity:0.5;margin-top:2px;'>
+            ⚡ {xp} XP
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# TASK 5: MOOD RING BADGE
+# ─────────────────────────────────────────────────────────────────────
+def render_mood_ring(mood: str):
+    """Renders the pulsing mood ring badge."""
+    accent = MOOD_ACCENT.get(mood, "#1DB954")
+    emoji  = MOOD_EMOJI.get(mood, "🎵")
+    st.markdown(f"""
+    <div style='text-align:center;margin:14px 0;'>
+        <span class='mood-ring' style='
+            background:{accent}18;
+            border-color:{accent};
+            color:white;'>
+            <span class='mood-ring-dot' style='background:{accent};
+                box-shadow:0 0 8px {accent};'></span>
+            {emoji} {mood} Mode
+        </span>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# TASK 6: FLIP ANIMATION WRAPPER FOR SONG CARDS
+# ─────────────────────────────────────────────────────────────────────
+def flip_card_wrap_start(index: int = 0):
+    """Wraps the next song card in a flip animation container."""
+    delay = index * 0.12
+    st.markdown(
+        f"<div class='flip-container'>"
+        f"<div class='flip-card' style='animation-delay:{delay}s;'>",
+        unsafe_allow_html=True)
+
+def flip_card_wrap_end():
+    """Closes the flip animation container."""
+    st.markdown("</div></div>", unsafe_allow_html=True)

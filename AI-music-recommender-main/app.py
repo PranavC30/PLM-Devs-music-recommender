@@ -39,6 +39,8 @@ try:
     from ui_components import (
         render_song_card_with_art, render_now_playing_bar_v2,
         render_splash_screen, render_lyrics_search, get_album_art_html,
+        render_animated_counter, render_stats_row, render_profile_avatar,
+        render_mood_ring, flip_card_wrap_start, flip_card_wrap_end,
     )
     _NEW_UI = True
 except ImportError:
@@ -48,6 +50,12 @@ except ImportError:
     def render_splash_screen(): pass
     def render_lyrics_search(df): pass
     def get_album_art_html(song, size=68): return ""
+    def render_animated_counter(v, l, a="#1DB954"): st.metric(l, v)
+    def render_stats_row(s, li, sk, st_, a="#1DB954"): pass
+    def render_profile_avatar(u, m="Relaxed", x=0): pass
+    def render_mood_ring(mood): pass
+    def flip_card_wrap_start(i=0): pass
+    def flip_card_wrap_end(): pass
 
 st.set_page_config(page_title="PLM Devs AI Recommender", page_icon="🎵", layout="wide")
 
@@ -420,6 +428,9 @@ with tab_rec:
     st.session_state.current_language = language
     accent = MOOD_ACCENT.get(detected_mood, "#1DB954")
 
+    # ── Mood ring animated badge ─────────────────────────────────────
+    render_mood_ring(detected_mood)
+
     if detected_mood in ["Focus", "Relaxed"]:
         render_pomodoro()
 
@@ -478,7 +489,9 @@ with tab_rec:
             _is_fav   = _song["Song"] in _favs_list
             _fav_icon = "❤️" if _is_fav else "🤍"
 
+            flip_card_wrap_start(_i)
             render_song_card_with_art(_song, detected_mood)
+            flip_card_wrap_end()
             st.markdown(get_yt_embed_html(
                 _song.get("URL", ""), _song["Song"],
                 _song.get("Language", "Hindi"), _song.get("SpotifyURL", "")),
@@ -883,7 +896,13 @@ with tab_profile:
     _pstats = load_stats(st.session_state.username)
     _pxp    = _pstats.get("xp", 0)
     _plevel = get_level(_pxp)
-    st.header(f"👤 {st.session_state.username}")
+
+    # ── Animated profile avatar ──────────────────────────────────────
+    render_profile_avatar(
+        username = st.session_state.username,
+        mood     = st.session_state.get("current_mood", "Relaxed") or "Relaxed",
+        xp       = _pxp,
+    )
 
     _lvl_thresh  = [0, 50, 150, 300, 600, 1000]
     _next_thresh = next((t for t in _lvl_thresh if t > _pxp), 1000)
@@ -894,11 +913,15 @@ with tab_profile:
     st.caption(f"⚡ {_pxp} XP — {_next_thresh - _pxp} XP to next level")
     st.divider()
 
-    _ps1, _ps2, _ps3, _ps4 = st.columns(4)
-    _ps1.metric("🔥 Streak",    f"{_pstats.get('streak', 0)} days")
-    _ps2.metric("🎵 Sessions",  _pstats.get("total_sessions", 0))
-    _ps3.metric("👍 Likes",     _pstats.get("total_likes", 0))
-    _ps4.metric("⏭️ Skips",     _pstats.get("total_skips", 0))
+    # ── Animated stats counters ──────────────────────────────────────
+    _acc = MOOD_ACCENT.get(st.session_state.get("current_mood","Relaxed"), "#1DB954")
+    render_stats_row(
+        sessions = _pstats.get("total_sessions", 0),
+        likes    = _pstats.get("total_likes", 0),
+        skips    = _pstats.get("total_skips", 0),
+        streak   = _pstats.get("streak", 0),
+        accent   = _acc,
+    )
     st.divider()
 
     # Badges
