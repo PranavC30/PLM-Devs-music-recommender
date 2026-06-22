@@ -125,3 +125,20 @@ def get_comments(playlist_id: int) -> list:
     for p in load_shared_playlists():
         if p["id"] == playlist_id: return p.get("comments", [])
     return []
+
+def add_comment(playlist_id: int, username: str, text: str):
+    playlists = load_shared_playlists()
+    for p in playlists:
+        if p["id"] == playlist_id:
+            p.setdefault("comments", []).append({
+                "username": username,
+                "text": text.strip(),
+                "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+            })
+    save_shared_playlists(playlists)
+
+def get_comments(playlist_id: int) -> list:
+    for p in load_shared_playlists():
+        if p["id"] == playlist_id:
+            return p.get("comments", [])
+    return []
