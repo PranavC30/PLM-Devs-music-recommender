@@ -723,7 +723,9 @@ def render_lyrics_search(df):
 # ─────────────────────────────────────────────────────────────────────
 def render_animated_counter(value: int, label: str, accent: str = "#1DB954"):
     """Renders a JS count-up animated number with a label below it."""
-    uid = f"ctr_{label.replace(' ','_').lower()}"
+    # Safe ID — remove all non-alphanumeric chars
+    import re as _re
+    uid = "ctr_" + _re.sub(r'[^a-z0-9]', '_', label.lower())[:20]
     st.markdown(f"""
     <div style='text-align:center;padding:8px 12px;'>
         <div id='{uid}' class='animated-counter' style='color:{accent};'>0</div>
@@ -778,48 +780,31 @@ _AVATAR_PALETTES = [
 ]
 
 def render_profile_avatar(username: str, mood: str = "Relaxed", xp: int = 0):
-    """
-    Renders a large animated avatar with a spinning gradient ring.
-    Avatar shows first 2 initials + a mood emoji.
-    """
-    initials = (username[:2].upper() if username else "??")
+    initials   = (username[:2].upper() if username else "??")
     mood_emoji = MOOD_EMOJI.get(mood, "🎵")
-    accent = MOOD_ACCENT.get(mood, "#1DB954")
+    accent     = MOOD_ACCENT.get(mood, "#1DB954")
 
-    # Pick palette based on username hash
-    palette_idx = sum(ord(c) for c in username) % len(_AVATAR_PALETTES)
+    palette_idx = sum(ord(c) for c in (username or "?")) % len(_AVATAR_PALETTES)
     c1, c2 = _AVATAR_PALETTES[palette_idx]
-
-    # Level badge color
-    level_color = accent
 
     st.markdown(f"""
     <div class='profile-avatar-wrap'>
         <div class='profile-avatar-ring'
-             style='background: conic-gradient({c1} 0deg, {c2} 120deg,
-                    transparent 120deg, transparent 180deg,
-                    {c2} 180deg, {c1} 360deg);'>
+             style='background:conic-gradient({c1} 0deg,{c2} 120deg,
+                    transparent 120deg,transparent 180deg,
+                    {c2} 180deg,{c1} 360deg);'>
             <div class='profile-avatar-inner'
-                 style='background: linear-gradient(135deg, #0a0a18, #12121f);'>
-                <span style='background: linear-gradient(135deg,{c1},{c2});
+                 style='background:linear-gradient(135deg,#0a0a18,#12121f);'>
+                <span style='background:linear-gradient(135deg,{c1},{c2});
                     -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-                    font-size:2rem;font-weight:800;'>
-                    {initials}
-                </span>
+                    font-size:2rem;font-weight:800;'>{initials}</span>
             </div>
         </div>
         <div style='font-size:2rem;margin:-14px 0 6px 0;
-                    filter:drop-shadow(0 0 8px {accent});'>
-            {mood_emoji}
-        </div>
-        <div style='font-size:1.2rem;font-weight:800;letter-spacing:0.5px;'>
-            {username}
-        </div>
-        <div style='font-size:0.8rem;opacity:0.5;margin-top:2px;'>
-            ⚡ {xp} XP
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+                    filter:drop-shadow(0 0 8px {accent});'>{mood_emoji}</div>
+        <div style='font-size:1.2rem;font-weight:800;letter-spacing:0.5px;'>{username}</div>
+        <div style='font-size:0.8rem;opacity:0.5;margin-top:2px;'>⚡ {xp} XP</div>
+    </div>""", unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────────────────────────────

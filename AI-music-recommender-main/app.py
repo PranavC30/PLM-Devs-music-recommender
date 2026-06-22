@@ -134,8 +134,8 @@ apply_theme(st.session_state.get("current_mood", "Relaxed") or "Relaxed")
 
 # ── Splash screen — show once per session ─────────────────────────────
 if not st.session_state.get("splash_shown", False):
-    render_splash_screen()
     st.session_state.splash_shown = True
+    render_splash_screen()
 
 # ══════════════════════════════════════════════════════════════════════
 # LOGIN PAGE
