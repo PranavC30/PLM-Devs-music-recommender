@@ -29,12 +29,25 @@ from playlist_generator import generate_playlist, get_preset_playlists
 from content_filter import get_similar_songs
 from ui_components import (
     inject_global_css, render_animated_header, render_song_card,
-    render_song_card_with_art, render_mood_selector, render_skeleton_cards,
-    show_toast, render_now_playing_bar, render_now_playing_bar_v2,
-    render_sidebar, render_onboarding, render_splash_screen,
-    render_lyrics_search, get_album_art_html,
+    render_mood_selector, render_skeleton_cards,
+    show_toast, render_now_playing_bar,
+    render_sidebar, render_onboarding,
     MOOD_ACCENT, MOOD_GRADIENTS, MOOD_EMOJI,
 )
+# New features — safe import
+try:
+    from ui_components import (
+        render_song_card_with_art, render_now_playing_bar_v2,
+        render_splash_screen, render_lyrics_search, get_album_art_html,
+    )
+    _NEW_UI = True
+except ImportError:
+    _NEW_UI = False
+    render_song_card_with_art = render_song_card
+    render_now_playing_bar_v2 = render_now_playing_bar
+    def render_splash_screen(): pass
+    def render_lyrics_search(df): pass
+    def get_album_art_html(song, size=68): return ""
 
 st.set_page_config(page_title="PLM Devs AI Recommender", page_icon="🎵", layout="wide")
 
