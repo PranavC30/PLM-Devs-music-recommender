@@ -193,32 +193,71 @@ def render_sidebar(username, xp, level, streak, queue, favs, mood="Relaxed"):
     st.markdown("<br>", unsafe_allow_html=True)
 
 def render_onboarding():
-    if "onboard_step" not in st.session_state: st.session_state.onboard_step = 1
+    # Inject base CSS so onboarding renders correctly before full theme loads
+    inject_global_css(accent="#1DB954", bg=MOOD_GRADIENTS["Relaxed"])
+
+    if "onboard_step" not in st.session_state:
+        st.session_state.onboard_step = 1
     step = st.session_state.onboard_step
-    dots = "".join(f"<div style='width:10px;height:10px;border-radius:50%;background:{'#1DB954' if i==step else 'rgba(255,255,255,0.2)'};display:inline-block;margin:0 4px;'></div>" for i in range(1,4))
-    STEPS = {1:("👋","Welcome to PLM Music AI!","Ek personal AI jo tere saath music taste seekhta hai.",["🧠 Q-Learning Engine","🎭 Mood Detection","🏆 Gamification"]),
-             2:("🎭","Apna Pehla Mood Batao","Abhi is waqt kaisa feel ho raha hai?",None),
-             3:("🌍","Language Choose Karo","Kaunsi language mein gaane sunna chahte ho?",None)}
-    icon,title,subtitle,features = STEPS[step]
-    st.markdown(f"""<style>.onboard-wrap{{max-width:640px;margin:40px auto;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:40px 44px;backdrop-filter:blur(20px);box-shadow:0 16px 60px rgba(0,0,0,0.5);text-align:center;}}</style>
-    <div class='onboard-wrap'><div style='font-size:3.5rem;margin-bottom:12px;'>{icon}</div>
-    <h2 style='margin:0 0 8px 0;font-size:1.5rem;font-weight:800;'>{title}</h2>
-    <p style='opacity:0.7;margin:0 0 4px 0;font-size:0.95rem;'>{subtitle}</p>
-    <div style='display:flex;justify-content:center;gap:8px;margin:24px 0 8px 0;'>{dots}</div></div>""", unsafe_allow_html=True)
-    _, center_col, _ = st.columns([1,2,1])
+
+    # Progress dots
+    dots = "".join(
+        f"<div style='width:10px;height:10px;border-radius:50%;"
+        f"background:{'#1DB954' if i == step else 'rgba(255,255,255,0.2)'};"
+        f"display:inline-block;margin:0 4px;'></div>"
+        for i in range(1, 4)
+    )
+
+    STEPS = {
+        1: ("👋", "Welcome to PLM Music AI!",
+            "Ek personal AI jo tere saath music taste seekhta hai.",
+            ["🧠 Q-Learning Engine", "🎭 Mood Detection", "🏆 Gamification"]),
+        2: ("🎭", "Apna Pehla Mood Batao",
+            "Abhi is waqt kaisa feel ho raha hai?", None),
+        3: ("🌍", "Language Choose Karo",
+            "Kaunsi language mein gaane sunna chahte ho?", None),
+    }
+    icon, title, subtitle, features = STEPS[step]
+
+    _, center_col, _ = st.columns([1, 2, 1])
     with center_col:
+        st.markdown(
+            f"<div style='text-align:center;padding:40px 20px 20px 20px;'>"
+            f"<div style='font-size:3.5rem;margin-bottom:12px;'>{icon}</div>"
+            f"<h2 style='margin:0 0 8px 0;font-size:1.5rem;font-weight:800;color:white;'>{title}</h2>"
+            f"<p style='opacity:0.7;margin:0 0 16px 0;font-size:0.95rem;color:white;'>{subtitle}</p>"
+            f"<div style='display:flex;justify-content:center;gap:8px;margin-bottom:24px;'>{dots}</div>"
+            f"</div>",
+            unsafe_allow_html=True)
+
         if step == 1:
             if features:
                 for feat in features:
-                    st.markdown(f"<div style='background:rgba(29,185,84,0.1);border:1px solid #1DB95444;border-radius:10px;padding:10px 16px;margin:6px 0;font-weight:600;'>{feat}</div>", unsafe_allow_html=True)
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("Chalo Shuru Karte Hain! 🚀", use_container_width=True, type="primary"):
-                st.session_state.onboard_step = 2; st.rerun()
+                    st.markdown(
+                        f"<div style='background:rgba(29,185,84,0.12);border:1px solid #1DB95444;"
+                        f"border-radius:12px;padding:12px 18px;margin:6px 0;"
+                        f"font-weight:600;font-size:0.95rem;color:white;'>{feat}</div>",
+                        unsafe_allow_html=True)
+            st.write("")
+            if st.button("Chalo Shuru Karte Hain! 🚀",
+                         use_container_width=True, type="primary"):
+                st.session_state.onboard_step = 2
+                st.rerun()
+
         elif step == 2:
-            for label, val in [("😄 Happy","Happy"),("😢 Sad","Sad"),("🎯 Focus","Focus"),("😌 Relaxed","Relaxed")]:
+            for label, val in [("😄 Happy", "Happy"), ("😢 Sad", "Sad"),
+                                ("🎯 Focus", "Focus"), ("😌 Relaxed", "Relaxed")]:
                 if st.button(label, use_container_width=True, key=f"ob_mood_{val}"):
-                    st.session_state.current_mood = val; st.session_state.onboard_step = 3; st.rerun()
+                    st.session_state.current_mood = val
+                    st.session_state.onboard_step = 3
+                    st.rerun()
+
         elif step == 3:
-            for label, val in [("🇮🇳 Hindi","Hindi"),("🇬🇧 English","English"),("🎺 Punjabi","Punjabi"),("🎵 Tamil","Tamil"),("🎶 Telugu","Telugu")]:
+            lang_map = {"🇮🇳 Hindi": "Hindi", "🇬🇧 English": "English",
+                        "🎺 Punjabi": "Punjabi", "🎵 Tamil": "Tamil", "🎶 Telugu": "Telugu"}
+            for label, val in lang_map.items():
                 if st.button(label, use_container_width=True, key=f"ob_lang_{label}"):
-                    st.session_state.current_language = val; st.session_state.onboard_done = True; st.session_state.onboard_step = 1; st.rerun()
+                    st.session_state.current_language = val
+                    st.session_state.onboard_done    = True
+                    st.session_state.onboard_step    = 1
+                    st.rerun()

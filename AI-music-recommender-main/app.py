@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit as st
 import time
 import os
 import glob
@@ -174,7 +173,10 @@ if not st.session_state.logged_in:
                 elif len(s_pass) < 4:      st.error("Password must be at least 4 characters.")
                 else:
                     _ok, _msg = register_user(s_user.strip(), s_pass)
-                    st.success(f"✅ {_msg} Now login!") if _ok else st.error(_msg)
+                    if _ok:
+                        st.success(f"✅ {_msg} Now login!")
+                    else:
+                        st.error(_msg)
 
     st.markdown("<div style='text-align:center;margin-top:30px;opacity:0.4;font-size:0.78rem;'>"
                 "Built with ❤️ by PLM Devs &nbsp;·&nbsp; Pranav Chakravorty</div>", unsafe_allow_html=True)
@@ -1015,7 +1017,7 @@ with tab_chat:
     # Input form
     with st.form("chat_form", clear_on_submit=True):
         _cc1, _cc2 = st.columns([5, 1])
-        _user_msg  = _cc1.text_input("", placeholder="e.g. 'sad hindi songs do' or 'party punjabi'",
+        _user_msg  = _cc1.text_input("Message", placeholder="e.g. 'sad hindi songs do' or 'party punjabi'",
                                      label_visibility="collapsed")
         _sent      = _cc2.form_submit_button("Send 📤", use_container_width=True)
 
